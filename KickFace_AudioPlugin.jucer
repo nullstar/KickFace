@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="wqJWA6" name="KickFace" projectType="audioplug" version="1.0.0"
-              bundleIdentifier="com.voidstar.KickFace" includeBinaryInAppConfig="1"
+              bundleIdentifier="com.nullstar.KickFace" includeBinaryInAppConfig="1"
               buildVST="1" buildVST3="0" buildAU="1" buildAUv3="0" buildRTAS="0"
-              buildAAX="0" pluginName="KickFace" pluginDesc="KickFace" pluginManufacturer="voidstar"
-              pluginManufacturerCode="Manu" pluginCode="Wqjw" pluginChannelConfigs=""
+              buildAAX="0" pluginName="KickFace" pluginDesc="KickFace" pluginManufacturer="nullstar"
+              pluginManufacturerCode="Nsta" pluginCode="Kkfc" pluginChannelConfigs=""
               pluginIsSynth="0" pluginWantsMidiIn="0" pluginProducesMidiOut="0"
               pluginIsMidiEffectPlugin="0" pluginEditorRequiresKeys="0" pluginAUExportPrefix="KickFaceAU"
-              pluginRTASCategory="" aaxIdentifier="com.voidstar.KickFace" pluginAAXCategory="AAX_ePlugInCategory_Dynamics"
+              pluginRTASCategory="" aaxIdentifier="com.nullstar.KickFace" pluginAAXCategory="AAX_ePlugInCategory_Dynamics"
               jucerVersion="4.3.0">
   <MAINGROUP id="YTWqZU" name="KickFace">
     <GROUP id="{9220E8F4-FC20-95BD-1744-B8DE704D4E7A}" name="Source">
@@ -65,20 +65,20 @@
                        isDebug="0" optimisation="3" targetName="KickFace" defines="JUCE_OPENGL3"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_core" path="../../modules"/>
-        <MODULEPATH id="juce_events" path="../../modules"/>
-        <MODULEPATH id="juce_graphics" path="../../modules"/>
-        <MODULEPATH id="juce_data_structures" path="../../modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../../modules"/>
-        <MODULEPATH id="juce_gui_extra" path="../../modules"/>
-        <MODULEPATH id="juce_cryptography" path="../../modules"/>
-        <MODULEPATH id="juce_video" path="../../modules"/>
-        <MODULEPATH id="juce_opengl" path="../../modules"/>
-        <MODULEPATH id="juce_audio_basics" path="../../modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../../modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../../modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../../modules"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../../modules"/>
+        <MODULEPATH id="juce_core" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_events" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_graphics" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_data_structures" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_gui_basics" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_gui_extra" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_cryptography" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_video" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_opengl" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_basics" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_devices" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_formats" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_processors" path="..\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="..\JUCE\modules"/>
       </MODULEPATHS>
     </VS2015>
   </EXPORTFORMATS>

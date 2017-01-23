@@ -326,9 +326,21 @@ AudioProcessorEditor* KickFaceAudioProcessor::createEditor()
 
 void KickFaceAudioProcessor::getStateInformation(MemoryBlock& destData)
 {
-	m_parameters.getParameter("delay")->setValue((float)m_delayValue.getValue());
-	m_parameters.getParameter("invertPhase")->setValue((float)m_invertPhaseValue.getValue());
-	m_parameters.getParameter("listenMode")->setValue((float)m_listenModeValue.getValue());
+	float delay = (float)m_delayValue.getValue();
+	float invertPhase = (float)m_invertPhaseValue.getValue();
+	float listenMode = (float)m_listenModeValue.getValue();
+
+	AudioProcessorParameter* pDelayParam = m_parameters.getParameter("delay");
+	float delayNorm = m_parameters.getParameterRange("delay").convertTo0to1(delay);
+	pDelayParam->setValue(delayNorm);
+
+	AudioProcessorParameter* pInvertPhaseParam = m_parameters.getParameter("invertPhase");
+	float invertPhaseNorm = m_parameters.getParameterRange("invertPhase").convertTo0to1(invertPhase);
+	pInvertPhaseParam->setValue(invertPhaseNorm);
+
+	AudioProcessorParameter* pListenModeParam = m_parameters.getParameter("listenMode");
+	float listenModeNorm = m_parameters.getParameterRange("listenMode").convertTo0to1(listenMode);
+	pListenModeParam->setValue(listenModeNorm);
 
 	MemoryOutputStream outStream(destData, true);
 	m_parameters.state.writeToStream(outStream);
@@ -342,9 +354,13 @@ void KickFaceAudioProcessor::setStateInformation(const void* data, int sizeInByt
 	m_parameters.state.readFromStream(inStream);
 	m_givenName = inStream.readString();
 
-	m_delayValue.setValue(*m_parameters.getRawParameterValue("delay"));
-	m_invertPhaseValue.setValue(*m_parameters.getRawParameterValue("invertPhase"));
-	m_listenModeValue.setValue(*m_parameters.getRawParameterValue("listenMode"));
+	float delay = *m_parameters.getRawParameterValue("delay");
+	float invertPhase = *m_parameters.getRawParameterValue("invertPhase");
+	float listenMode = *m_parameters.getRawParameterValue("listenMode");
+
+	m_delayValue.setValue(delay);
+	m_invertPhaseValue.setValue(invertPhase);
+	m_listenModeValue.setValue(listenMode);
 }
 
 
