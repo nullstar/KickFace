@@ -50,7 +50,7 @@ KickFaceAudioProcessor::KickFaceAudioProcessor()
 	m_parameters.createAndAddParameter("delay", "Delay", "delay", NormalisableRange<float>(-SAMPLE_DELAY_RANGE, SAMPLE_DELAY_RANGE, 1.0f), 0.0f, nullptr, nullptr);
 	m_parameters.createAndAddParameter("invertPhase", "InvertPhase", "invertPhase", NormalisableRange<float>(0.0f, 1.0f, 1.0f), 0.0f, invertPhaseToText, textToInvertPhase);
 	m_parameters.createAndAddParameter("listenMode", "ListenMode", "listenMode", NormalisableRange<float>(0.0f, (float)E_ListenMode::Max, 1.0f), (float)E_ListenMode::LeftChannelOnly, listenModeToText, textToListenMode);
-	m_parameters.state = ValueTree(Identifier("KickFace"));
+	m_parameters.state = ValueTree(Identifier("KickFaceValueTree"));
 
 	m_delayValue = m_parameters.getParameterAsValue("delay");
 	m_invertPhaseValue = m_parameters.getParameterAsValue("invertPhase");
@@ -326,41 +326,35 @@ AudioProcessorEditor* KickFaceAudioProcessor::createEditor()
 
 void KickFaceAudioProcessor::getStateInformation(MemoryBlock& destData)
 {
-	float delay = (float)m_delayValue.getValue();
-	float invertPhase = (float)m_invertPhaseValue.getValue();
-	float listenMode = (float)m_listenModeValue.getValue();
-
-	AudioProcessorParameter* pDelayParam = m_parameters.getParameter("delay");
-	float delayNorm = m_parameters.getParameterRange("delay").convertTo0to1(delay);
-	pDelayParam->setValue(delayNorm);
-
-	AudioProcessorParameter* pInvertPhaseParam = m_parameters.getParameter("invertPhase");
-	float invertPhaseNorm = m_parameters.getParameterRange("invertPhase").convertTo0to1(invertPhase);
-	pInvertPhaseParam->setValue(invertPhaseNorm);
-
-	AudioProcessorParameter* pListenModeParam = m_parameters.getParameter("listenMode");
-	float listenModeNorm = m_parameters.getParameterRange("listenMode").convertTo0to1(listenMode);
-	pListenModeParam->setValue(listenModeNorm);
-
-	MemoryOutputStream outStream(destData, true);
-	m_parameters.state.writeToStream(outStream);
-	outStream.writeString(m_givenName);
+	ScopedPointer<juce::XmlElement> pXml = new juce::XmlElement("KickFaceState");
+	pXml->setAttribute("GivenName", m_givenName);
+	pXml->addChildElement(m_parameters.state.createXml());
+	copyXmlToBinary(*pXml, destData);
 }
 
 
 void KickFaceAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-	MemoryInputStream inStream(data, static_cast<size_t>(sizeInBytes), false);
-	m_parameters.state.readFromStream(inStream);
-	m_givenName = inStream.readString();
+	ScopedPointer<juce::XmlElement> pXml(getXmlFromBinary(data, sizeInBytes));
+	if(pXml != nullptr)
+	{
+		if(pXml->hasTagName("KickFaceState"))
+		{
+			if(pXml->hasAttribute("GivenName"))
+				m_givenName = pXml->getStringAttribute("GivenName");
 
-	float delay = *m_parameters.getRawParameterValue("delay");
-	float invertPhase = *m_parameters.getRawParameterValue("invertPhase");
-	float listenMode = *m_parameters.getRawParameterValue("listenMode");
+			for(int childIndex = 0; childIndex < pXml->getNumChildElements(); ++childIndex)
+			{
+				juce::XmlElement* pChildElement = pXml->getChildElement(childIndex);
+				if(pChildElement->hasTagName(m_parameters.state.getType()))
+					m_parameters.state = ValueTree::fromXml(*pChildElement);
+			}
+		}
+	}
 
-	m_delayValue.setValue(delay);
-	m_invertPhaseValue.setValue(invertPhase);
-	m_listenModeValue.setValue(listenMode);
+	m_delayValue.referTo(m_parameters.getParameterAsValue("delay"));
+	m_invertPhaseValue.referTo(m_parameters.getParameterAsValue("invertPhase"));
+	m_listenModeValue.referTo(m_parameters.getParameterAsValue("listenMode"));
 }
 
 
