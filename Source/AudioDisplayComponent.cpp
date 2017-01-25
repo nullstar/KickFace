@@ -124,6 +124,23 @@ void AudioDisplayComponent::setRemoteAudioSource(KickFaceAudioProcessor* pProces
 
 void AudioDisplayComponent::newOpenGLContextCreated()
 {
+	m_pQuadMeshShaderProgram = nullptr;
+	m_pTexQuadShaderProgram = nullptr;
+	m_pQuadMesh = nullptr;
+	m_localAudioSource.m_pQuadMesh = nullptr;
+	m_remoteAudioSource.m_pQuadMesh = nullptr;
+	m_combinedAudioSource.m_pQuadMesh = nullptr;
+	m_localAudioSource.m_pTexQuad = nullptr;
+	m_remoteAudioSource.m_pTexQuad = nullptr;
+	m_combinedAudioSource.m_pTexQuad = nullptr;
+}
+
+
+void AudioDisplayComponent::initialiseOpenGL()
+{
+	if(m_pQuadMeshShaderProgram != nullptr)
+		return;
+
 	m_pQuadMeshShaderProgram = new ShaderProgram(m_openGLContext);
 	if(m_pQuadMeshShaderProgram->load(gQuadMeshVertexShaderSource, gQuadMeshFragmentShaderSource))
 	{
@@ -221,9 +238,12 @@ void AudioDisplayComponent::newOpenGLContextCreated()
 
 void AudioDisplayComponent::renderOpenGL()
 {
-	// render waveforms to render targets
 	jassert(OpenGLHelpers::isContextActive());
 
+	// initialise opengl if needed
+	initialiseOpenGL();
+
+	// render waveforms to render targets
 	const float desktopScale = (float)m_openGLContext.getRenderingScale();
 	OpenGLHelpers::clear(Colour::greyLevel(0.1f));
 

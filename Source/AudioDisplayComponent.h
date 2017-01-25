@@ -74,6 +74,7 @@ private:
 	};
 
 	void newOpenGLContextCreated() override;
+	void initialiseOpenGL();
 	void renderOpenGL() override;
 	void renderAudioSource(AudioSource& audioSource, const std::array<float, 4>& colour);
 	void renderCombinedAudioSource(CombinedAudioSource& audioSource, const std::array<float, 4>& colour);
