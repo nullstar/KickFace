@@ -1,238 +1,140 @@
 #pragma once
 
 
-#include <vector>
 #include "../../JuceLibraryCode/JuceHeader.h"
-#include "ShaderProgram.h"
+#include <vector>
 
 
-#define GL_MAP_WRITE_BIT 0x0002
-#define GL_MAP_UNSYNCHRONIZED_BIT 0x0020
 
-
-class Mesh;
-
-
-class VertexBuffer
+template<class Vertex>
+class StaticVertexBuffer
 {
 public:
-	VertexBuffer(OpenGLContext& openGLContext, int attributeSize, GLenum attributeType);
-	~VertexBuffer();
-
-	uint32 getVbo() const { return m_vbo; }
-
-protected:
-	OpenGLContext& m_openGLContext;
-	uint32 m_vbo;
-	int m_attributeSize;
-	GLenum m_attributeType;
-
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VertexBuffer)
-};
-
-
-template<class T>
-class StaticVertexBuffer : public VertexBuffer
-{
-public:
-	StaticVertexBuffer(OpenGLContext& openGLContext, uint32 vao, int attributeIndex, int attributeSize, GLenum attributeType, const std::vector<T>& vertices);
+	StaticVertexBuffer(OpenGLContext& context, const std::vector<Vertex>& vertices);
 	~StaticVertexBuffer();
 
-	uint32 vertexCount() const { return m_vertexCount; }
+	void bind();
 
-protected:
-	uint32 m_vertexCount;
-	uint32 m_attributeDivisor;
+private:
+	OpenGLContext& m_openGLContext;
+	GLuint m_vertexBuffer;
 };
 
 
-template<class T>
-class DynamicVertexBuffer : public VertexBuffer
+template<class Vertex>
+StaticVertexBuffer<Vertex>::StaticVertexBuffer(OpenGLContext& context, const std::vector<Vertex>& vertices)
+	: m_openGLContext(context)
+	, m_vertexBuffer(0)
+{
+	m_openGLContext.extensions.glGenBuffers(1, &m_vertexBuffer);
+	m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+	m_openGLContext.extensions.glBufferData(GL_ARRAY_BUFFER,
+		static_cast<GLsizeiptr>(static_cast<size_t>(vertices.size()) * sizeof(Vertex)),
+		vertices.data(), GL_STATIC_DRAW);
+	m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+
+template<class Vertex>
+StaticVertexBuffer<Vertex>::~StaticVertexBuffer()
+{
+	m_openGLContext.extensions.glDeleteBuffers(1, &m_vertexBuffer);
+}
+
+
+template<class Vertex>
+void StaticVertexBuffer<Vertex>::bind()
+{
+	m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+}
+
+
+
+
+template<class Vertex>
+class DynamicVertexBuffer
 {
 public:
-	DynamicVertexBuffer(OpenGLContext& openGLContext, uint32 vao, int attributeIndex, int attributeSize, GLenum attributeType, uint32 vertexCapacity);
+	DynamicVertexBuffer(OpenGLContext& context, GLuint vertexCapacity);
 	~DynamicVertexBuffer();
 
-	void update(bool clearVertexArray);
+	GLuint getVertexCapacity() const;
+	Vertex* getVertexArray();
+	void updateVertexArray(GLuint startVertexIndex, GLuint lastVertexIndex);
 
-	uint32 vertexCapacity() const { return m_vertexCapacity; }
-	uint32 vertexCount() const { return m_vertexCount; }
-	uint32 vertexOffset() const { return m_drawOffset; }
-	uint32 numAddedVertices() const { return m_vertices.size(); }
+	void bind();
 
-	void clearVertexArray();
-	bool addVertex(const T& vertex);
-	bool addVertex(const T& vertex, int numVertices);
-	bool setVertex(const T& vertex, int vertexIndex);
-
-protected:
-	std::vector<T> m_vertices;
-	uint32 m_vertexCapacity;
-	uint32 m_vertexCount;
-	uint32 m_streamOffset;
-	uint32 m_drawOffset;
-	uint32 m_vao;
-	int m_attributeIndex;
-	uint32 m_attributeDivisor;
+private:
+	OpenGLContext& m_openGLContext;
+	Vertex* m_pVertices;
+	GLuint m_vertexCapacity;
+	GLuint m_vertexBuffer;
 };
 
 
-
-
-
-template<class T>
-StaticVertexBuffer<T>::StaticVertexBuffer(OpenGLContext& openGLContext, uint32 vao, int attributeIndex, int attributeSize, GLenum attributeType, const std::vector<T>& vertices)
-	: VertexBuffer(openGLContext, attributeSize, attributeType)
-	, m_vertexCount(vertices.size())
-{
-	// create vbo
-	m_openGLContext.extensions.glGenBuffers(1, &m_vbo);
-	m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	m_openGLContext.extensions.glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(T), (const void*)&vertices[0], GL_STATIC_DRAW);
-
-	// bind mesh attributes
-	m_openGLContext.extensions.glBindVertexArray(vao);
-	m_openGLContext.extensions.glEnableVertexAttribArray(attributeIndex);
-	m_openGLContext.extensions.glVertexAttribPointer(attributeIndex, m_attributeSize, m_attributeType, GL_FALSE, 0, 0);
-
-	// unbind
-	m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, 0);
-	m_openGLContext.extensions.glBindVertexArray(0);
-}
-
-
-template<class T>
-StaticVertexBuffer<T>::~StaticVertexBuffer()
-{
-	m_vertexCount = 0;
-}
-
-
-
-
-template<class T>
-DynamicVertexBuffer<T>::DynamicVertexBuffer(OpenGLContext& openGLContext, uint32 vao, int attributeIndex, int attributeSize, GLenum attributeType, uint32 vertexCapacity)
-	: VertexBuffer(openGLContext, attributeSize, attributeType)
+template<class Vertex>
+DynamicVertexBuffer<Vertex>::DynamicVertexBuffer(OpenGLContext& context, GLuint vertexCapacity)
+	: m_openGLContext(context)
+	, m_pVertices(nullptr)
 	, m_vertexCapacity(vertexCapacity)
-	, m_streamOffset(0)
-	, m_drawOffset(0)
-	, m_vao(vao)
-	, m_attributeIndex(attributeIndex)
+	, m_vertexBuffer(0)
 {
-	// create vbo
-	m_openGLContext.extensions.glGenBuffers(1, &m_vbo);
-	m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	m_openGLContext.extensions.glBufferData(GL_ARRAY_BUFFER, m_vertexCapacity * sizeof(T), NULL, GL_DYNAMIC_DRAW);
-	m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// bind mesh attributes
-	m_openGLContext.extensions.glBindVertexArray(m_vao);
-	m_openGLContext.extensions.glEnableVertexAttribArray(m_attributeIndex);
-	m_openGLContext.extensions.glVertexAttribPointer(m_attributeIndex, m_attributeSize, m_attributeType, GL_FALSE, 0, 0);
-
-	// unbind
-	m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, 0);
-	m_openGLContext.extensions.glBindVertexArray(0);
-
-	// initialise stream offset to buffer capacity
-	m_streamOffset = m_vertexCapacity * sizeof(T);
-}
-
-
-template<class T>
-DynamicVertexBuffer<T>::~DynamicVertexBuffer()
-{
-	m_vertices.clear();
-}
-
-
-template<class T>
-void DynamicVertexBuffer<T>::update(bool clearVertexArray)
-{
-	// get num vertices and bail if nothing to draw
-	m_vertexCount = m_vertices.size();
-	if(!m_vertexCount)
-		return;
-
-	// bind buffer
-	m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-
-	// orphan the buffer if full
-	GLuint bufferCapacity = m_vertexCapacity * sizeof(T);
-	GLuint streamDataSize = m_vertexCount * sizeof(T);
-	if(m_streamOffset + streamDataSize > bufferCapacity)
+	if(m_vertexCapacity > 0)
 	{
-		// allocate new space
-		m_openGLContext.extensions.glBufferData(GL_ARRAY_BUFFER, bufferCapacity, NULL, GL_DYNAMIC_DRAW);
+		m_pVertices = new Vertex[m_vertexCapacity];
 
-		// reset bound vao
-		m_openGLContext.extensions.glBindVertexArray(m_vao);
-		m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-		m_openGLContext.extensions.glVertexAttribPointer(m_attributeIndex, m_attributeSize, m_attributeType, GL_FALSE, 0, 0);
-		m_openGLContext.extensions.glBindVertexArray(0);
-
-		// reset stream offset
-		m_streamOffset = 0;
+		m_openGLContext.extensions.glGenBuffers(1, &m_vertexBuffer);
+		m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+		m_openGLContext.extensions.glBufferData(GL_ARRAY_BUFFER,
+			static_cast<GLsizeiptr>(static_cast<size_t>(m_vertexCapacity) * sizeof(Vertex)),
+			m_pVertices, GL_DYNAMIC_DRAW);
+		m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
-
-	// get memory
-	void* pVertices = m_openGLContext.extensions.glMapBufferRange(GL_ARRAY_BUFFER, m_streamOffset, streamDataSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-	if(!pVertices)
-		return;
-
-	// copy vertex data
-	memcpy(pVertices, (const void*)&m_vertices[0], streamDataSize);
-	if(clearVertexArray)
-		m_vertices.clear();
-
-	// unmap buffer
-	m_openGLContext.extensions.glUnmapBuffer(GL_ARRAY_BUFFER);
-	m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// increment offset
-	m_drawOffset = m_streamOffset / sizeof(T);
-	m_streamOffset += streamDataSize;
 }
 
 
-template<class T>
-void DynamicVertexBuffer<T>::clearVertexArray()
+template<class Vertex>
+DynamicVertexBuffer<Vertex>::~DynamicVertexBuffer()
 {
-	m_vertices.clear();
+	m_openGLContext.extensions.glDeleteBuffers(1, &m_vertexBuffer);
+
+	if(m_pVertices)
+		delete []m_pVertices;
 }
 
 
-template<class T>
-bool DynamicVertexBuffer<T>::addVertex(const T& vertex)
+template<class Vertex>
+GLuint DynamicVertexBuffer<Vertex>::getVertexCapacity() const
 {
-	if(m_vertices.size() < m_vertexCapacity)
+	return m_vertexCapacity;
+}
+
+
+template<class Vertex>
+Vertex* DynamicVertexBuffer<Vertex>::getVertexArray()
+{
+	return m_pVertices;
+}
+
+
+template<class Vertex>
+void DynamicVertexBuffer<Vertex>::updateVertexArray(GLuint startVertexIndex, GLuint lastVertexIndex)
+{
+	if(startVertexIndex >= m_vertexCapacity) { startVertexIndex = m_vertexCapacity - 1; }
+	if(lastVertexIndex >= m_vertexCapacity) { lastVertexIndex = m_vertexCapacity - 1; }
+
+	if(lastVertexIndex >= startVertexIndex)
 	{
-		m_vertices.push_back(vertex);
-		return true;
+		m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+		m_openGLContext.extensions.glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(Vertex) * startVertexIndex),
+			static_cast<GLsizeiptr>(sizeof(Vertex) * (lastVertexIndex - startVertexIndex + 1)), m_pVertices);
+		m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
-	return false;
 }
 
 
-template<class T>
-bool DynamicVertexBuffer<T>::addVertex(const T& vertex, int numVertices)
+template<class Vertex>
+void DynamicVertexBuffer<Vertex>::bind()
 {
-	if(m_vertices.size() + numVertices <= m_vertexCapacity)
-	{
-		m_vertices.resize(m_vertices.size() + numVertices, vertex);
-		return true;
-	}
-	return false;
-}
-
-
-template<class T>
-bool DynamicVertexBuffer<T>::setVertex(const T& vertex, int vertexIndex)
-{
-	if(vertexIndex >= 0 && vertexIndex < m_vertices.size())
-	{
-		m_vertices[vertexIndex] = vertex;
-		return true;
-	}
-	return false;
+	m_openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
 }

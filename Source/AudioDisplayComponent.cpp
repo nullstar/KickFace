@@ -64,8 +64,7 @@ void main()\
 
 
 AudioDisplayComponent::AudioDisplayComponent(KickFaceAudioProcessor& processor)
-	: m_refresh(true)
-	, m_viewStartRatio(0.0f)
+	: m_viewStartRatio(0.0f)
 	, m_viewEndRatio(1.0f)
 	, m_zoomLevel(0.0f)
 	, m_dragMode(E_DragMode::None)
@@ -120,7 +119,6 @@ void AudioDisplayComponent::setRemoteAudioSource(KickFaceAudioProcessor* pProces
 		m_remoteAudioSource.m_prevCache.m_invertPhase = false;
 		m_remoteAudioSource.m_prevCache.m_listenMode = 0;
 	}
-	m_refresh = true;
 }
 
 
@@ -129,44 +127,76 @@ void AudioDisplayComponent::newOpenGLContextCreated()
 	m_pQuadMeshShaderProgram = new ShaderProgram(m_openGLContext);
 	if(m_pQuadMeshShaderProgram->load(gQuadMeshVertexShaderSource, gQuadMeshFragmentShaderSource))
 	{
-		int positionAttributeIndex = m_pQuadMeshShaderProgram->getAttributeIndex("v_position");
-		int colourAttributeIndex = m_pQuadMeshShaderProgram->getAttributeIndex("v_colour");
+		std::vector<Attribute> colQuadAttributes;
+		colQuadAttributes.resize(2);
 
-		m_pQuadMesh = new QuadMesh(m_openGLContext);
-		m_pQuadMesh->initialise(positionAttributeIndex, colourAttributeIndex, 3, 3);
+		colQuadAttributes[0].m_name = "v_position";
+		colQuadAttributes[0].m_numFloats = 3;
+		colQuadAttributes[0].m_floatOffset = 0;
 
-		m_localAudioSource.m_pQuadMesh = new FixedQuadMesh(m_openGLContext);
-		m_localAudioSource.m_pQuadMesh->initialise(positionAttributeIndex, colourAttributeIndex, AUDIODISPLAY_NUM_QUADS, 3);
+		colQuadAttributes[1].m_name = "v_colour";
+		colQuadAttributes[1].m_numFloats = 4;
+		colQuadAttributes[1].m_floatOffset = 3;
 
-		m_remoteAudioSource.m_pQuadMesh = new FixedQuadMesh(m_openGLContext);
-		m_remoteAudioSource.m_pQuadMesh->initialise(positionAttributeIndex, colourAttributeIndex, AUDIODISPLAY_NUM_QUADS, 3);
-
-		m_combinedAudioSource.m_pQuadMesh = new FixedQuadMesh(m_openGLContext);
-		m_combinedAudioSource.m_pQuadMesh->initialise(positionAttributeIndex, colourAttributeIndex, AUDIODISPLAY_NUM_QUADS, 3);
+		m_pQuadMesh = new DynamicQuadMesh<ColQuadVert>(m_openGLContext, 3, colQuadAttributes);
+		m_localAudioSource.m_pQuadMesh = new DynamicQuadMesh<ColQuadVert>(m_openGLContext, AUDIODISPLAY_NUM_QUADS, colQuadAttributes);
+		m_remoteAudioSource.m_pQuadMesh = new DynamicQuadMesh<ColQuadVert>(m_openGLContext, AUDIODISPLAY_NUM_QUADS, colQuadAttributes);
+		m_combinedAudioSource.m_pQuadMesh = new DynamicQuadMesh<ColQuadVert>(m_openGLContext, AUDIODISPLAY_NUM_QUADS, colQuadAttributes);
 	}
 
 	m_pTexQuadShaderProgram = new ShaderProgram(m_openGLContext);
 	if(m_pTexQuadShaderProgram->load(gTexQuadVertexShaderSource, gTexQuadFragmentShaderSource))
 	{
-		int positionAttributeIndex = m_pTexQuadShaderProgram->getAttributeIndex("v_position");
-		int texAttributeIndex = m_pTexQuadShaderProgram->getAttributeIndex("v_texCoord");
+		std::vector<TexQuadVert> texQuadVerts;
+		texQuadVerts.resize(4);
 
-		std::array<float, 2> topLeft;
-		topLeft[0] = -1.0f;
-		topLeft[1] = -1.0f;
+		texQuadVerts[0].m_position[0] = -1.0f;
+		texQuadVerts[0].m_position[1] = -1.0f;
+		texQuadVerts[0].m_position[2] = 0.5f;
+		texQuadVerts[0].m_texCoord[0] = 0.0f;
+		texQuadVerts[0].m_texCoord[1] = 0.0f;
 
-		std::array<float, 2> dimensions;
-		dimensions[0] = 2.0f;
-		dimensions[1] = 2.0f;
+		texQuadVerts[1].m_position[0] = 1.0f;
+		texQuadVerts[1].m_position[1] = -1.0f;
+		texQuadVerts[1].m_position[2] = 0.5f;
+		texQuadVerts[1].m_texCoord[0] = 1.0f;
+		texQuadVerts[1].m_texCoord[1] = 0.0f;
 
-		m_localAudioSource.m_pTexQuad = new StaticTexQuad(m_openGLContext);
-		m_localAudioSource.m_pTexQuad->initialise(positionAttributeIndex, texAttributeIndex, topLeft, dimensions, 0.5f);
+		texQuadVerts[2].m_position[0] = 1.0f;
+		texQuadVerts[2].m_position[1] = 1.0f;
+		texQuadVerts[2].m_position[2] = 0.5f;
+		texQuadVerts[2].m_texCoord[0] = 1.0f;
+		texQuadVerts[2].m_texCoord[1] = 1.0f;
 
-		m_remoteAudioSource.m_pTexQuad = new StaticTexQuad(m_openGLContext);
-		m_remoteAudioSource.m_pTexQuad->initialise(positionAttributeIndex, texAttributeIndex, topLeft, dimensions, 0.5f);
+		texQuadVerts[3].m_position[0] = -1.0f;
+		texQuadVerts[3].m_position[1] = 1.0f;
+		texQuadVerts[3].m_position[2] = 0.5f;
+		texQuadVerts[3].m_texCoord[0] = 0.0f;
+		texQuadVerts[3].m_texCoord[1] = 1.0f;
 
-		m_combinedAudioSource.m_pTexQuad = new StaticTexQuad(m_openGLContext);
-		m_combinedAudioSource.m_pTexQuad->initialise(positionAttributeIndex, texAttributeIndex, topLeft, dimensions, 0.5f);
+		std::vector<GLuint> texQuadIndices;
+		texQuadIndices.resize(6);
+		texQuadIndices[0] = 0;
+		texQuadIndices[1] = 1;
+		texQuadIndices[2] = 2;
+		texQuadIndices[3] = 0;
+		texQuadIndices[4] = 2;
+		texQuadIndices[5] = 3;
+
+		std::vector<Attribute> texQuadAttributes;
+		texQuadAttributes.resize(2);
+
+		texQuadAttributes[0].m_name = "v_position";
+		texQuadAttributes[0].m_numFloats = 3;
+		texQuadAttributes[0].m_floatOffset = 0;
+
+		texQuadAttributes[1].m_name = "v_texCoord";
+		texQuadAttributes[1].m_numFloats = 2;
+		texQuadAttributes[1].m_floatOffset = 3;
+
+		m_localAudioSource.m_pTexQuad = new StaticMesh<TexQuadVert>(m_openGLContext, texQuadVerts, texQuadIndices, texQuadAttributes);
+		m_remoteAudioSource.m_pTexQuad = new StaticMesh<TexQuadVert>(m_openGLContext, texQuadVerts, texQuadIndices, texQuadAttributes);
+		m_combinedAudioSource.m_pTexQuad = new StaticMesh<TexQuadVert>(m_openGLContext, texQuadVerts, texQuadIndices, texQuadAttributes);
 	}
 
 	KickFaceAudioProcessor* pLocalProcessor = m_localAudioSource.m_processor.get();
@@ -186,8 +216,6 @@ void AudioDisplayComponent::newOpenGLContextCreated()
 	m_localAudioSource.m_image = Image(Image::ARGB, AUDIODISPLAY_UPSCALE * getWidth(), AUDIODISPLAY_UPSCALE * getHeight(), true, OpenGLImageType());
 	m_remoteAudioSource.m_image = Image(Image::ARGB, AUDIODISPLAY_UPSCALE * getWidth(), AUDIODISPLAY_UPSCALE * getHeight(), true, OpenGLImageType());
 	m_combinedAudioSource.m_image = Image(Image::ARGB, AUDIODISPLAY_UPSCALE * getWidth(), AUDIODISPLAY_UPSCALE * getHeight(), true, OpenGLImageType());
-
-	m_refresh = true;
 }
 
 
@@ -216,19 +244,19 @@ void AudioDisplayComponent::renderOpenGL()
 	colour[1] = 0.3f;
 	colour[2] = 0.3f;
 	colour[3] = 1.0f;
-	renderCombinedAudioSource(m_combinedAudioSource, m_refresh, colour);
+	renderCombinedAudioSource(m_combinedAudioSource, colour);
 	
 	colour[0] = 141.0f / 255.0f;
 	colour[1] = 21.0f / 255.0f;
 	colour[2] = 74.0f / 255.0f;
 	colour[3] = 1.0f;
-	renderAudioSource(m_localAudioSource, m_refresh, colour);
+	renderAudioSource(m_localAudioSource, colour);
 
 	colour[0] = 40.0f / 255.0f;
 	colour[1] = 119.0f / 255.0f;
 	colour[2] = 118.0f / 255.0f;
 	colour[3] = 1.0f;
-	renderAudioSource(m_remoteAudioSource, m_refresh, colour);
+	renderAudioSource(m_remoteAudioSource, colour);
 
 	glViewport(0, 0, roundToInt(desktopScale * getWidth()), roundToInt(desktopScale * getHeight()));
 
@@ -248,7 +276,7 @@ void AudioDisplayComponent::renderOpenGL()
 	m_openGLContext.extensions.glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, pLocalTex->getTextureID());
 	m_openGLContext.extensions.glUniform1i(m_pTexQuadShaderProgram->getUniformIndex("texture0"), 0);
-	m_localAudioSource.m_pTexQuad->render();
+	m_localAudioSource.m_pTexQuad->draw(m_pTexQuadShaderProgram);
 
 	// render remote audio source
 	if(m_remoteAudioSource.m_processor.get())
@@ -257,26 +285,27 @@ void AudioDisplayComponent::renderOpenGL()
 		m_openGLContext.extensions.glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, pRemoteTex->getTextureID());
 		m_openGLContext.extensions.glUniform1i(m_pTexQuadShaderProgram->getUniformIndex("texture0"), 0);
-		m_remoteAudioSource.m_pTexQuad->render();
+		m_remoteAudioSource.m_pTexQuad->draw(m_pTexQuadShaderProgram);
 
 		// render combined
 		OpenGLFrameBuffer* pCombinedTex = OpenGLImageType::getFrameBufferFrom(m_combinedAudioSource.m_image);
 		m_openGLContext.extensions.glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, pCombinedTex->getTextureID());
 		m_openGLContext.extensions.glUniform1i(m_pTexQuadShaderProgram->getUniformIndex("texture0"), 0);
-		m_combinedAudioSource.m_pTexQuad->render();
+		m_combinedAudioSource.m_pTexQuad->draw(m_pTexQuadShaderProgram);
 	}
 
 	// render time bars	
 	m_pQuadMeshShaderProgram->useProgram();
 
+	int numBars = 0;
 	const float timeBarHalfWidth = 0.003f;
 	for(int barIndex = 0; barIndex < 3; ++barIndex)
 	{
 		float xPos = (0.25f * (barIndex + 1) - m_viewStartRatio) / (m_viewEndRatio - m_viewStartRatio);
 		if(xPos + timeBarHalfWidth > 0.0f || xPos - timeBarHalfWidth < 1.0f)
 		{
-			std::array<QuadMesh::QuadVert, 4> verts;
+			std::array<ColQuadVert, 4> verts;
 
 			verts[0].m_position[0] = 2.0f * jmax(xPos - timeBarHalfWidth, 0.0f) - 1.0f;
 			verts[0].m_position[1] = 1.0f;
@@ -302,17 +331,17 @@ void AudioDisplayComponent::renderOpenGL()
 				verts[i].m_colour[3] = 1.0f;
 			}
 
-			m_pQuadMesh->add(verts);
+			m_pQuadMesh->setQuad(numBars, verts);
+			++numBars;
 		}
 	}
-	m_pQuadMesh->render();
 
-	// reset refresh
-	m_refresh = false;
+	if(numBars > 0)
+		m_pQuadMesh->draw(m_pQuadMeshShaderProgram, 0, numBars - 1);
 }
 
 
-void AudioDisplayComponent::renderAudioSource(AudioSource& audioSource, bool refresh, const std::array<float, 4>& colour)
+void AudioDisplayComponent::renderAudioSource(AudioSource& audioSource, const std::array<float, 4>& colour)
 {
 	KickFaceAudioProcessor* pProcessor = audioSource.m_processor.get();
 	if(!pProcessor)
@@ -326,12 +355,6 @@ void AudioDisplayComponent::renderAudioSource(AudioSource& audioSource, bool ref
 	bool nextInvertPhase = (float)pProcessor->getInvertPhaseValue().getValue() > 0.5f;
 	int nextListenMode = roundFloatToInt((float)pProcessor->getListenModeValue().getValue());
 
-	// update refresh status
-	if(audioSource.m_prevCache.m_delaySamples != nextDelaySamples 
-		|| audioSource.m_prevCache.m_invertPhase != nextInvertPhase 
-		|| audioSource.m_prevCache.m_listenMode != nextListenMode)
-		refresh = true;
-
 	// update mesh
 	AudioSampleBuffer* pBeatBuffer = pProcessor->getBeatBuffer();
 	if(pBeatBuffer)
@@ -343,141 +366,57 @@ void AudioDisplayComponent::renderAudioSource(AudioSource& audioSource, bool ref
 
 		const int viewStartBeatSample = (int)floorf(m_viewStartRatio * numBeatSamples);
 		const int viewEndBeatSample = (int)ceilf(m_viewEndRatio * numBeatSamples);
-		if(refresh || !(beatBufferChangeSampleEnd < viewStartBeatSample || beatBufferChangeSampleStart > viewEndBeatSample))
+		const float viewScale = (float)(viewEndBeatSample - viewStartBeatSample) / AUDIODISPLAY_NUM_QUADS;
+
+		int startQuad = 0;
+		int endQuad = AUDIODISPLAY_NUM_QUADS - 1;
+		const float sampleSign = nextInvertPhase ? -1.0f : 1.0f;
+		const float* pReadBuffer = pBeatBuffer->getReadPointer(0);
+
+		const float kVertDepth = 0.5f;
+		float vertXScale = 2.0f / AUDIODISPLAY_NUM_QUADS;
+		float vertXPos = -1.0f;
+		float vertYScale = 1.0f;
+		float vertYPos = 0.0f;
+		std::array<ColQuadVert, 4> verts;
+
+		float startSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample + (startQuad * viewScale) - nextDelaySamples);
+		float endSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample + ((startQuad + 1) * viewScale) - nextDelaySamples);
+		for(int i = startQuad; i <= endQuad; ++i)
 		{
-			const float viewScale = (float)(viewEndBeatSample - viewStartBeatSample) / AUDIODISPLAY_NUM_QUADS;
+			verts[0].m_position[0] = vertXPos + ((i - 1) * vertXScale);
+			verts[0].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (startSample * vertYScale));
+			verts[0].m_position[2] = kVertDepth;
 
-			int startQuad = 0;
-			int endQuad = AUDIODISPLAY_NUM_QUADS - 1;
-			if(!refresh)
+			verts[1].m_position[0] = vertXPos + (i * vertXScale);
+			verts[1].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (endSample * vertYScale));
+			verts[1].m_position[2] = kVertDepth;
+
+			verts[2].m_position[0] = vertXPos + (i * vertXScale);
+			verts[2].m_position[1] = vertYPos;
+			verts[2].m_position[2] = kVertDepth;
+
+			verts[3].m_position[0] = vertXPos + ((i - 1) * vertXScale);
+			verts[3].m_position[1] = vertYPos;
+			verts[3].m_position[2] = kVertDepth;
+
+			for(int j = 0; j < 4; ++j)
 			{
-				startQuad = (int)floorf(jmax(beatBufferChangeSampleStart - viewStartBeatSample, 0) / viewScale);
-				endQuad = (int)ceilf(jmin(beatBufferChangeSampleEnd - viewStartBeatSample, AUDIODISPLAY_NUM_QUADS) / viewScale);
+				verts[j].m_colour[0] = colour[0];
+				verts[j].m_colour[1] = colour[1];
+				verts[j].m_colour[2] = colour[2];
+				verts[j].m_colour[3] = colour[3];
 			}
 
-			const float sampleSign = nextInvertPhase ? -1.0f : 1.0f;
-			const float* pReadBuffer = pBeatBuffer->getReadPointer(0);
+			audioSource.m_pQuadMesh->setQuad(i, verts);
 
-			const float kVertDepth = 0.5f;
-			float vertXScale = 2.0f / AUDIODISPLAY_NUM_QUADS;
-			float vertXPos = -1.0f;
-			float vertYScale = 1.0f;
-			float vertYPos = 0.0f;
-			std::array<FixedQuadMesh::QuadVert, 4> verts;
-
-			if(startQuad <= endQuad)
-			{
-				float startSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample + (startQuad * viewScale) - nextDelaySamples);
-				float endSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample + ((startQuad + 1) * viewScale) - nextDelaySamples);
-				for(int i = startQuad; i <= endQuad; ++i)
-				{
-					verts[0].m_position[0] = vertXPos + ((i - 1) * vertXScale);
-					verts[0].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (startSample * vertYScale));
-					verts[0].m_position[2] = kVertDepth;
-
-					verts[1].m_position[0] = vertXPos + (i * vertXScale);
-					verts[1].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (endSample * vertYScale));
-					verts[1].m_position[2] = kVertDepth;
-
-					verts[2].m_position[0] = vertXPos + (i * vertXScale);
-					verts[2].m_position[1] = vertYPos;
-					verts[2].m_position[2] = kVertDepth;
-
-					verts[3].m_position[0] = vertXPos + ((i - 1) * vertXScale);
-					verts[3].m_position[1] = vertYPos;
-					verts[3].m_position[2] = kVertDepth;
-
-					for(int j = 0; j < 4; ++j)
-					{
-						verts[j].m_colour[0] = colour[0];
-						verts[j].m_colour[1] = colour[1];
-						verts[j].m_colour[2] = colour[2];
-						verts[j].m_colour[3] = colour[3];
-					}
-
-					audioSource.m_pQuadMesh->setQuad(verts, i);
-
-					startSample = endSample;
-					endSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample + ((i + 2) * viewScale) - nextDelaySamples);
-				}
-			}
-			else
-			{
-				float startSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample - nextDelaySamples);
-				float endSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample + viewScale - nextDelaySamples);
-				for(int i = 0; i < startQuad; ++i)
-				{
-					verts[0].m_position[0] = vertXPos + ((i - 1) * vertXScale);
-					verts[0].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (startSample * vertYScale));
-					verts[0].m_position[2] = kVertDepth;
-
-					verts[1].m_position[0] = vertXPos + (i * vertXScale);
-					verts[1].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (endSample * vertYScale));
-					verts[1].m_position[2] = kVertDepth;
-
-					verts[2].m_position[0] = vertXPos + (i * vertXScale);
-					verts[2].m_position[1] = vertYPos;
-					verts[2].m_position[2] = kVertDepth;
-
-					verts[3].m_position[0] = vertXPos + ((i - 1) * vertXScale);
-					verts[3].m_position[1] = vertYPos;
-					verts[3].m_position[2] = kVertDepth;
-
-					for(int j = 0; j < 4; ++j)
-					{
-						verts[j].m_colour[0] = colour[0];
-						verts[j].m_colour[1] = colour[1];
-						verts[j].m_colour[2] = colour[2];
-						verts[j].m_colour[3] = colour[3];
-					}
-
-					audioSource.m_pQuadMesh->setQuad(verts, i);
-
-					startSample = endSample;
-					endSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample + ((i + 2) * viewScale) - nextDelaySamples);
-				}
-
-				startSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample + (endQuad * viewScale) - nextDelaySamples);
-				endSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample + ((endQuad + 1) * viewScale) - nextDelaySamples);
-				for(int i = endQuad; i < AUDIODISPLAY_NUM_QUADS; ++i)
-				{
-					verts[0].m_position[0] = vertXPos + ((i - 1) * vertXScale);
-					verts[0].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (startSample * vertYScale));
-					verts[0].m_position[2] = kVertDepth;
-
-					verts[1].m_position[0] = vertXPos + (i * vertXScale);
-					verts[1].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (endSample * vertYScale));
-					verts[1].m_position[2] = kVertDepth;
-
-					verts[2].m_position[0] = vertXPos + (i * vertXScale);
-					verts[2].m_position[1] = vertYPos;
-					verts[2].m_position[2] = kVertDepth;
-
-					verts[3].m_position[0] = vertXPos + ((i - 1) * vertXScale);
-					verts[3].m_position[1] = vertYPos;
-					verts[3].m_position[2] = kVertDepth;
-
-					for(int j = 0; j < 4; ++j)
-					{
-						verts[j].m_colour[0] = colour[0];
-						verts[j].m_colour[1] = colour[1];
-						verts[j].m_colour[2] = colour[2];
-						verts[j].m_colour[3] = colour[3];
-					}
-
-					audioSource.m_pQuadMesh->setQuad(verts, i);
-
-					startSample = endSample;
-					endSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample + ((i + 2) * viewScale) - nextDelaySamples);
-				}
-			}
+			startSample = endSample;
+			endSample = sampleSign * sampleBuffer(pReadBuffer, numBeatSamples, viewStartBeatSample + ((i + 2) * viewScale) - nextDelaySamples);
 		}
 	}
 
 	// render
-	if(audioSource.m_pQuadMesh->getNumVertices() > 0)
-		audioSource.m_pQuadMesh->render();
-
+	audioSource.m_pQuadMesh->draw(m_pQuadMeshShaderProgram);
 	pRenderTarget->releaseAsRenderingTarget();
 
 	// cache prev values
@@ -488,7 +427,7 @@ void AudioDisplayComponent::renderAudioSource(AudioSource& audioSource, bool ref
 }
 
 
-void AudioDisplayComponent::renderCombinedAudioSource(CombinedAudioSource& combinedSource, bool refresh, const std::array<float, 4>& colour)
+void AudioDisplayComponent::renderCombinedAudioSource(CombinedAudioSource& combinedSource, const std::array<float, 4>& colour)
 {
 	OpenGLFrameBuffer* pRenderTarget = OpenGLImageType::getFrameBufferFrom(combinedSource.m_image);
 	pRenderTarget->makeCurrentAndClear();
@@ -506,13 +445,6 @@ void AudioDisplayComponent::renderCombinedAudioSource(CombinedAudioSource& combi
 			renderSource.m_nextCache.m_delaySamples = (float)pAudioSource->m_processor->getDelayValue().getValue();
 			renderSource.m_nextCache.m_invertPhase = (float)pAudioSource->m_processor->getInvertPhaseValue().getValue() > 0.5f;
 			renderSource.m_nextCache.m_listenMode = roundFloatToInt((float)pAudioSource->m_processor->getListenModeValue().getValue());
-
-			// update refresh status
-			if(pAudioSource->m_prevCache.m_delaySamples != renderSource.m_nextCache.m_delaySamples
-				|| pAudioSource->m_prevCache.m_invertPhase != renderSource.m_nextCache.m_invertPhase
-				|| pAudioSource->m_prevCache.m_listenMode != renderSource.m_nextCache.m_listenMode)
-				refresh = true;
-
 			m_renderAudioSources.push_back(renderSource);
 		}
 	}
@@ -534,167 +466,68 @@ void AudioDisplayComponent::renderCombinedAudioSource(CombinedAudioSource& combi
 
 	const int viewStartBeatSample = (int)floorf(m_viewStartRatio * numBeatSamples);
 	const int viewEndBeatSample = (int)ceilf(m_viewEndRatio * numBeatSamples);
-	if(refresh || !(beatBufferChangeSampleEnd < viewStartBeatSample || beatBufferChangeSampleStart > viewEndBeatSample))
+	const float viewScale = (float)(viewEndBeatSample - viewStartBeatSample) / AUDIODISPLAY_NUM_QUADS;
+
+	int startQuad = 0;
+	int endQuad = AUDIODISPLAY_NUM_QUADS - 1;
+
+	for(int i = 0; i < m_renderAudioSources.size(); ++i)
 	{
-		const float viewScale = (float)(viewEndBeatSample - viewStartBeatSample) / AUDIODISPLAY_NUM_QUADS;
+		m_renderAudioSources[i].m_sampleSign = m_renderAudioSources[i].m_nextCache.m_invertPhase ? -1.0f : 1.0f;
+		m_renderAudioSources[i].m_pReadBuffer = m_renderAudioSources[i].m_pBeatBuffer->getReadPointer(0);
+	}
 
-		int startQuad = 0;
-		int endQuad = AUDIODISPLAY_NUM_QUADS - 1;
-		if(!refresh)
+	const float kVertDepth = 0.5f;
+	float vertXScale = 2.0f / AUDIODISPLAY_NUM_QUADS;
+	float vertXPos = -1.0f;
+	float vertYScale = 1.0f;
+	float vertYPos = 0.0f;
+	std::array<ColQuadVert, 4> verts;
+
+	float startSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + (startQuad * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
+	float endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((startQuad + 1) * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
+	for(int i = 1; i < m_renderAudioSources.size(); ++i)
+	{
+		startSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + (startQuad * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
+		endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((startQuad + 1) * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
+	}
+
+	for(int q = startQuad; q <= endQuad; ++q)
+	{
+		verts[0].m_position[0] = vertXPos + ((q - 1) * vertXScale);
+		verts[0].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (startSample * vertYScale));
+		verts[0].m_position[2] = kVertDepth;
+
+		verts[1].m_position[0] = vertXPos + (q * vertXScale);
+		verts[1].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (endSample * vertYScale));
+		verts[1].m_position[2] = kVertDepth;
+
+		verts[2].m_position[0] = vertXPos + (q * vertXScale);
+		verts[2].m_position[1] = vertYPos;
+		verts[2].m_position[2] = kVertDepth;
+
+		verts[3].m_position[0] = vertXPos + ((q - 1) * vertXScale);
+		verts[3].m_position[1] = vertYPos;
+		verts[3].m_position[2] = kVertDepth;
+
+		for(int j = 0; j < 4; ++j)
 		{
-			startQuad = (int)floorf(jmax(beatBufferChangeSampleStart - viewStartBeatSample, 0) / viewScale);
-			endQuad = (int)ceilf(jmin(beatBufferChangeSampleEnd - viewStartBeatSample, AUDIODISPLAY_NUM_QUADS) / viewScale);
+			verts[j].m_colour[0] = colour[0];
+			verts[j].m_colour[1] = colour[1];
+			verts[j].m_colour[2] = colour[2];
+			verts[j].m_colour[3] = colour[3];
 		}
 
-		for(int i = 0; i < m_renderAudioSources.size(); ++i)
-		{
-			m_renderAudioSources[i].m_sampleSign = m_renderAudioSources[i].m_nextCache.m_invertPhase ? -1.0f : 1.0f;
-			m_renderAudioSources[i].m_pReadBuffer = m_renderAudioSources[i].m_pBeatBuffer->getReadPointer(0);
-		}
+		combinedSource.m_pQuadMesh->setQuad(q, verts);
 
-		const float kVertDepth = 0.5f;
-		float vertXScale = 2.0f / AUDIODISPLAY_NUM_QUADS;
-		float vertXPos = -1.0f;
-		float vertYScale = 1.0f;
-		float vertYPos = 0.0f;
-		std::array<FixedQuadMesh::QuadVert, 4> verts;
-
-		if(startQuad <= endQuad)
-		{
-			float startSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + (startQuad * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
-			float endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((startQuad + 1) * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
-			for(int i = 1; i < m_renderAudioSources.size(); ++i)
-			{
-				startSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + (startQuad * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
-				endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((startQuad + 1) * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
-			}
-
-			for(int q = startQuad; q <= endQuad; ++q)
-			{
-				verts[0].m_position[0] = vertXPos + ((q - 1) * vertXScale);
-				verts[0].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (startSample * vertYScale));
-				verts[0].m_position[2] = kVertDepth;
-
-				verts[1].m_position[0] = vertXPos + (q * vertXScale);
-				verts[1].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (endSample * vertYScale));
-				verts[1].m_position[2] = kVertDepth;
-
-				verts[2].m_position[0] = vertXPos + (q * vertXScale);
-				verts[2].m_position[1] = vertYPos;
-				verts[2].m_position[2] = kVertDepth;
-
-				verts[3].m_position[0] = vertXPos + ((q - 1) * vertXScale);
-				verts[3].m_position[1] = vertYPos;
-				verts[3].m_position[2] = kVertDepth;
-
-				for(int j = 0; j < 4; ++j)
-				{
-					verts[j].m_colour[0] = colour[0];
-					verts[j].m_colour[1] = colour[1];
-					verts[j].m_colour[2] = colour[2];
-					verts[j].m_colour[3] = colour[3];
-				}
-
-				combinedSource.m_pQuadMesh->setQuad(verts, q);
-
-				startSample = endSample;
-				endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
-				for(int i = 1; i < m_renderAudioSources.size(); ++i)
-					endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
-			}
-		}
-		else
-		{
-			float startSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample - m_renderAudioSources[0].m_nextCache.m_delaySamples);
-			float endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + viewScale - m_renderAudioSources[0].m_nextCache.m_delaySamples);
-			for(int i = 1; i < m_renderAudioSources.size(); ++i)
-			{
-				startSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample - m_renderAudioSources[i].m_nextCache.m_delaySamples);
-				endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + viewScale - m_renderAudioSources[i].m_nextCache.m_delaySamples);
-			}
-
-			for(int q = 0; q < startQuad; ++q)
-			{
-				verts[0].m_position[0] = vertXPos + ((q - 1) * vertXScale);
-				verts[0].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (startSample * vertYScale));
-				verts[0].m_position[2] = kVertDepth;
-
-				verts[1].m_position[0] = vertXPos + (q * vertXScale);
-				verts[1].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (endSample * vertYScale));
-				verts[1].m_position[2] = kVertDepth;
-
-				verts[2].m_position[0] = vertXPos + (q * vertXScale);
-				verts[2].m_position[1] = vertYPos;
-				verts[2].m_position[2] = kVertDepth;
-
-				verts[3].m_position[0] = vertXPos + ((q - 1) * vertXScale);
-				verts[3].m_position[1] = vertYPos;
-				verts[3].m_position[2] = kVertDepth;
-
-				for(int j = 0; j < 4; ++j)
-				{
-					verts[j].m_colour[0] = colour[0];
-					verts[j].m_colour[1] = colour[1];
-					verts[j].m_colour[2] = colour[2];
-					verts[j].m_colour[3] = colour[3];
-				}
-
-				m_combinedAudioSource.m_pQuadMesh->setQuad(verts, q);
-
-				startSample = endSample;
-				endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
-				for(int i = 1; i < m_renderAudioSources.size(); ++i)
-					endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
-			}
-
-			startSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + (endQuad * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
-			endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((endQuad + 1) * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
-			for(int i = 1; i < m_renderAudioSources.size(); ++i)
-			{
-				startSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + (endQuad * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
-				endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((endQuad + 1) * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
-			}
-
-			for(int q = endQuad; q < AUDIODISPLAY_NUM_QUADS; ++q)
-			{
-				verts[0].m_position[0] = vertXPos + ((q - 1) * vertXScale);
-				verts[0].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (startSample * vertYScale));
-				verts[0].m_position[2] = kVertDepth;
-
-				verts[1].m_position[0] = vertXPos + (q * vertXScale);
-				verts[1].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (endSample * vertYScale));
-				verts[1].m_position[2] = kVertDepth;
-
-				verts[2].m_position[0] = vertXPos + (q * vertXScale);
-				verts[2].m_position[1] = vertYPos;
-				verts[2].m_position[2] = kVertDepth;
-
-				verts[3].m_position[0] = vertXPos + ((q - 1) * vertXScale);
-				verts[3].m_position[1] = vertYPos;
-				verts[3].m_position[2] = kVertDepth;
-
-				for(int j = 0; j < 4; ++j)
-				{
-					verts[j].m_colour[0] = colour[0];
-					verts[j].m_colour[1] = colour[1];
-					verts[j].m_colour[2] = colour[2];
-					verts[j].m_colour[3] = colour[3];
-				}
-
-				m_combinedAudioSource.m_pQuadMesh->setQuad(verts, q);
-
-				startSample = endSample;
-				endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
-				for(int i = 1; i < m_renderAudioSources.size(); ++i)
-					endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
-			}
-		}
+		startSample = endSample;
+		endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
+		for(int i = 1; i < m_renderAudioSources.size(); ++i)
+			endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
 	}
 	
 	// render
-	if(m_combinedAudioSource.m_pQuadMesh->getNumVertices() > 0)
-		m_combinedAudioSource.m_pQuadMesh->render();
-
+	m_combinedAudioSource.m_pQuadMesh->draw(m_pQuadMeshShaderProgram);
 	pRenderTarget->releaseAsRenderingTarget();
 }
 
@@ -746,7 +579,6 @@ void AudioDisplayComponent::mouseWheelMove(const MouseEvent& event, const MouseW
 		return;
 
 	m_zoomLevel = nextZoomLevel;
-	m_refresh = true;
 
 	float viewRatioWidth = m_viewEndRatio - m_viewStartRatio;
 	float mouseRatio = event.position.x / getWidth();
@@ -832,7 +664,5 @@ void AudioDisplayComponent::mouseDrag(const MouseEvent& event)
 			}
 			break;
 		}
-
-		m_refresh = true;
 	}
 }

@@ -5,7 +5,7 @@
 #include "ToneGenerator.h"
 
 
-#define USE_TEST_TONE 0
+#define USE_TEST_TONE 1
 #define DEFAULT_BPM 100
 #define SAMPLE_DELAY_RANGE 2000 
 #define PROCESS_INSTANCE_ID_START 2

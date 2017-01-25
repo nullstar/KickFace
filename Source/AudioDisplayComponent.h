@@ -19,6 +19,18 @@ public:
 	void setRemoteAudioSource(KickFaceAudioProcessor* pProcessor);
 
 private:
+	struct TexQuadVert
+	{
+		float m_position[3];
+		float m_texCoord[2];
+	};
+
+	struct ColQuadVert
+	{
+		float m_position[3];
+		float m_colour[4];
+	};
+
 	struct AudioSourceCache
 	{
 		int64 m_beatBufferPosition;
@@ -30,8 +42,8 @@ private:
 	struct AudioSource
 	{
 		WeakReference<KickFaceAudioProcessor> m_processor;
-		ScopedPointer<FixedQuadMesh> m_pQuadMesh;
-		ScopedPointer<StaticTexQuad> m_pTexQuad;
+		ScopedPointer<DynamicQuadMesh<ColQuadVert>> m_pQuadMesh;
+		ScopedPointer<StaticMesh<TexQuadVert>> m_pTexQuad;
 		Image m_image;
 		AudioSourceCache m_prevCache;
 	};
@@ -39,8 +51,8 @@ private:
 	struct CombinedAudioSource
 	{
 		Array<AudioSource*> m_audioSources;
-		ScopedPointer<FixedQuadMesh> m_pQuadMesh;
-		ScopedPointer<StaticTexQuad> m_pTexQuad;
+		ScopedPointer<DynamicQuadMesh<ColQuadVert>> m_pQuadMesh;
+		ScopedPointer<StaticMesh<TexQuadVert>> m_pTexQuad;
 		Image m_image;
 	};
 
@@ -63,8 +75,8 @@ private:
 
 	void newOpenGLContextCreated() override;
 	void renderOpenGL() override;
-	void renderAudioSource(AudioSource& audioSource, bool refresh, const std::array<float, 4>& colour);
-	void renderCombinedAudioSource(CombinedAudioSource& audioSource, bool refresh, const std::array<float, 4>& colour);
+	void renderAudioSource(AudioSource& audioSource, const std::array<float, 4>& colour);
+	void renderCombinedAudioSource(CombinedAudioSource& audioSource, const std::array<float, 4>& colour);
 	void openGLContextClosing() override;
 
 	void paint(Graphics& g) override;
@@ -80,12 +92,10 @@ private:
 	OpenGLContext m_openGLContext;
 	ScopedPointer<ShaderProgram> m_pQuadMeshShaderProgram;
 	ScopedPointer<ShaderProgram> m_pTexQuadShaderProgram;
-	ScopedPointer<QuadMesh> m_pQuadMesh;
+	ScopedPointer<DynamicQuadMesh<ColQuadVert>> m_pQuadMesh;
 	AudioSource m_localAudioSource;
 	AudioSource m_remoteAudioSource;
 	CombinedAudioSource m_combinedAudioSource;
-
-	bool m_refresh;
 
 	float m_viewStartRatio;
 	float m_viewEndRatio;
