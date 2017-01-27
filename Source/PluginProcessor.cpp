@@ -150,6 +150,10 @@ void KickFaceAudioProcessor::changeProgramName(int index, const String& newName)
 
 void KickFaceAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessor::prepareToPlay : sampleRate ") + String(sampleRate));
+#endif
+
 	// initialise state
 	m_sampleRate = sampleRate;
 	m_errorState = 0;
@@ -169,21 +173,17 @@ void KickFaceAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBloc
 	// prepare test tone
 	m_testTone.prepareToPlay(sampleRate);
 #endif
-
-#if USE_LOGGING
-	Logger::writeToLog(String("prepareToPlay : sampleRate ") + String(m_sampleRate));
-#endif
 }
 
 
 void KickFaceAudioProcessor::releaseResources()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessor::releaseResources"));
+#endif
+
 	m_delayBuffer.setSize(0, 0);
 	m_beatBuffer.setSize(0, 0);
-
-#if USE_LOGGING
-	Logger::writeToLog(String("releaseResources"));
-#endif
 }
 
 
@@ -214,6 +214,10 @@ bool KickFaceAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) 
 
 void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessor::processBlock"));
+#endif
+
     const int totalNumInputChannels = getTotalNumInputChannels();
     const int totalNumOutputChannels = getTotalNumOutputChannels();
 
@@ -370,12 +374,20 @@ bool KickFaceAudioProcessor::hasEditor() const
 
 AudioProcessorEditor* KickFaceAudioProcessor::createEditor()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessor::createEditor"));
+#endif
+
     return new KickFaceAudioProcessorEditor(*this);
 }
 
 
 void KickFaceAudioProcessor::getStateInformation(MemoryBlock& destData)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessor::getStateInformation"));
+#endif
+
 	ScopedPointer<juce::XmlElement> pXml = new juce::XmlElement("KickFaceState");
 	pXml->setAttribute("GivenName", m_givenName);
 	pXml->addChildElement(m_parameters.state.createXml());
@@ -385,6 +397,10 @@ void KickFaceAudioProcessor::getStateInformation(MemoryBlock& destData)
 
 void KickFaceAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessor::setStateInformation"));
+#endif
+
 	ScopedPointer<juce::XmlElement> pXml(getXmlFromBinary(data, sizeInBytes));
 	if(pXml != nullptr)
 	{
@@ -434,6 +450,10 @@ int KickFaceAudioProcessor::getInstanceId() const
 
 void KickFaceAudioProcessor::setGivenName(const String& name)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessor::setGivenName"));
+#endif
+
 	m_givenName = name;
 	GlobalProcessorArray::processorGivenNameChanged(this);
 }
@@ -447,6 +467,10 @@ const String& KickFaceAudioProcessor::getGivenName() const
 
 void KickFaceAudioProcessor::generateInstanceId()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessor::generateInstanceId"));
+#endif
+
 	m_instanceId = -1;
 
 	int instanceId = -1;
@@ -465,6 +489,10 @@ void KickFaceAudioProcessor::generateInstanceId()
 
 void KickFaceAudioProcessor::generateGivenName()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessor::generateGivenName"));
+#endif
+
 	static juce::Random rand;
 	static std::vector<int> nameDefIndices;
 	nameDefIndices.clear();

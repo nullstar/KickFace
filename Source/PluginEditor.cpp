@@ -18,6 +18,10 @@ KickFaceAudioProcessorEditor::KickFaceAudioProcessorEditor(KickFaceAudioProcesso
 	, m_pLocalLookAndFeel(nullptr)
 	, m_pRemoteLookAndFeel(nullptr)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessorEditor::construct"));
+#endif
+
 	GlobalProcessorArray::addListener(this);
 
 	// initialise images
@@ -97,6 +101,10 @@ KickFaceAudioProcessorEditor::KickFaceAudioProcessorEditor(KickFaceAudioProcesso
 
 KickFaceAudioProcessorEditor::~KickFaceAudioProcessorEditor()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessorEditor::destruct"));
+#endif
+
 	GlobalProcessorArray::removeListener(this);
 	m_pAudioDisplay = nullptr;
 	m_pLocalLookAndFeel = nullptr;
@@ -106,6 +114,10 @@ KickFaceAudioProcessorEditor::~KickFaceAudioProcessorEditor()
 
 void KickFaceAudioProcessorEditor::paint(Graphics& g)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessorEditor::paint"));
+#endif
+
     g.fillAll(Colour(43, 50, 50));
 
 	Rectangle<int> bounds = getLocalBounds();
@@ -123,6 +135,10 @@ void KickFaceAudioProcessorEditor::paint(Graphics& g)
 
 void KickFaceAudioProcessorEditor::resized()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessorEditor::resized"));
+#endif
+
 	Rectangle<int> bounds = getLocalBounds();
 	bounds.reduce(10, 10);
 	bounds.removeFromTop(50);
@@ -139,6 +155,9 @@ void KickFaceAudioProcessorEditor::resized()
 
 void KickFaceAudioProcessorEditor::refreshProcessorList()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("KickFaceAudioProcessorEditor::refreshProcessorList"));
+#endif
 
 	int selectedId = m_remoteSourceListBox.getSelectedId();
 	m_remoteSourceListBox.clear(NotificationType::dontSendNotification);

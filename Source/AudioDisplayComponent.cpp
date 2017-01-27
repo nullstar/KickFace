@@ -70,6 +70,10 @@ AudioDisplayComponent::AudioDisplayComponent(KickFaceAudioProcessor& processor)
 	, m_dragMode(E_DragMode::None)
 	, m_dragSamples(0)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::construct"));
+#endif
+
 	m_localAudioSource.m_processor = &processor;
 	m_localAudioSource.m_pQuadMesh = nullptr;
 	m_localAudioSource.m_prevCache.m_beatBufferPosition = 0;
@@ -97,6 +101,10 @@ AudioDisplayComponent::AudioDisplayComponent(KickFaceAudioProcessor& processor)
 
 AudioDisplayComponent::~AudioDisplayComponent()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::destruct"));
+#endif
+
 	m_openGLContext.detach();
 	m_openGLContext.setRenderer(nullptr);
 }
@@ -104,6 +112,10 @@ AudioDisplayComponent::~AudioDisplayComponent()
 
 void AudioDisplayComponent::setRemoteAudioSource(KickFaceAudioProcessor* pProcessor)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::setRemoteAudioSource"));
+#endif
+
 	m_remoteAudioSource.m_processor = pProcessor;
 	if(pProcessor)
 	{
@@ -124,6 +136,10 @@ void AudioDisplayComponent::setRemoteAudioSource(KickFaceAudioProcessor* pProces
 
 void AudioDisplayComponent::newOpenGLContextCreated()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::newOpenGLContextCreated"));
+#endif
+
 	m_pQuadMeshShaderProgram = nullptr;
 	m_pTexQuadShaderProgram = nullptr;
 	m_pQuadMesh = nullptr;
@@ -138,6 +154,10 @@ void AudioDisplayComponent::newOpenGLContextCreated()
 
 void AudioDisplayComponent::initialiseOpenGL()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::initialiseOpenGL"));
+#endif
+
 	if(m_pQuadMeshShaderProgram != nullptr)
 		return;
 
@@ -238,6 +258,10 @@ void AudioDisplayComponent::initialiseOpenGL()
 
 void AudioDisplayComponent::renderOpenGL()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::renderOpenGL"));
+#endif
+
 	jassert(OpenGLHelpers::isContextActive());
 
 	// initialise opengl if needed
@@ -363,6 +387,10 @@ void AudioDisplayComponent::renderOpenGL()
 
 void AudioDisplayComponent::renderAudioSource(AudioSource& audioSource, const std::array<float, 4>& colour)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::renderAudioSource"));
+#endif
+
 	KickFaceAudioProcessor* pProcessor = audioSource.m_processor.get();
 	if(!pProcessor)
 		return;
@@ -449,6 +477,10 @@ void AudioDisplayComponent::renderAudioSource(AudioSource& audioSource, const st
 
 void AudioDisplayComponent::renderCombinedAudioSource(CombinedAudioSource& combinedSource, const std::array<float, 4>& colour)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::renderCombinedAudioSource"));
+#endif
+
 	OpenGLFrameBuffer* pRenderTarget = OpenGLImageType::getFrameBufferFrom(combinedSource.m_image);
 	pRenderTarget->makeCurrentAndClear();
 
@@ -557,6 +589,10 @@ void AudioDisplayComponent::renderCombinedAudioSource(CombinedAudioSource& combi
 
 void AudioDisplayComponent::openGLContextClosing()
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::openGLContextClosing"));
+#endif
+
 	m_localAudioSource.m_pQuadMesh = nullptr;
 	m_remoteAudioSource.m_pQuadMesh = nullptr;
 	m_combinedAudioSource.m_pQuadMesh = nullptr;
@@ -596,6 +632,10 @@ float AudioDisplayComponent::sampleBuffer(const float* pReadBuffer, int bufferSi
 
 void AudioDisplayComponent::mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::mouseWheelMove"));
+#endif
+
 	if(m_dragMode != E_DragMode::None)
 		return;
 
@@ -635,6 +675,10 @@ void AudioDisplayComponent::mouseWheelMove(const MouseEvent& event, const MouseW
 
 void AudioDisplayComponent::mouseDown(const MouseEvent& event)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::mouseDown"));
+#endif
+
 	m_dragMode = juce::ModifierKeys::getCurrentModifiers().isShiftDown() ? E_DragMode::Local : 
 		juce::ModifierKeys::getCurrentModifiers().isAltDown() ? E_DragMode::Remote : E_DragMode::View;
 	m_dragSamples = 0;
@@ -644,6 +688,10 @@ void AudioDisplayComponent::mouseDown(const MouseEvent& event)
 
 void AudioDisplayComponent::mouseUp(const MouseEvent& event)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::mouseUp"));
+#endif
+
 	m_dragMode = E_DragMode::None;
 	m_dragSamples = 0;
 }
@@ -651,6 +699,10 @@ void AudioDisplayComponent::mouseUp(const MouseEvent& event)
 
 void AudioDisplayComponent::mouseDrag(const MouseEvent& event)
 {
+#if USE_LOGGING
+	Logger::writeToLog(String("AudioDisplayComponent::mouseDrag"));
+#endif
+
 	KickFaceAudioProcessor* pProcessor = m_localAudioSource.m_processor.get();
 	if(pProcessor)
 	{
