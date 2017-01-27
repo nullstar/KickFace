@@ -10,7 +10,7 @@
 String g_logWelcomeMessage =
 "--------------------------------------------------------------------\n"
 "-----------------------------START----------------------------------\n"
-"KICKFACE v1.0";
+"KICKFACE v1.0 a";
 #endif
 
 
@@ -292,6 +292,8 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 					numSamplesWritten += numSamplesToWrite;
 				}
 			}
+
+			m_beatBufferPosition = (m_timeInSamples + buffer.getNumSamples()) % numSamplesPerBeat;
 		}
 #if USE_LOGGING
 		else
@@ -302,8 +304,6 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 				+ String(" : numSamplesPerBeat ") + String(numSamplesPerBeat));
 		}
 #endif
-
-		m_beatBufferPosition = (m_timeInSamples + buffer.getNumSamples()) % numSamplesPerBeat;
 
 #if USE_PLUGIN_HOST
 		m_timeInSamples += buffer.getNumSamples();
@@ -316,24 +316,24 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 	}
 
     // update and output delay line
-	float delay = (float)m_delayValue.getValue();
-	bool invertPhase = (float)m_invertPhaseValue.getValue() > 0.5f ? true : false;
-    for(int channel = 0; channel < jmin(jmin(totalNumInputChannels, 2), totalNumOutputChannels); ++channel)
-    {
-		// write to delay buffer
-		int numSamplesWritten = 0;
-		while(numSamplesWritten < buffer.getNumSamples())
+	if(m_delayBuffer.getNumSamples() > 0)
+	{
+		float delay = (float)m_delayValue.getValue();
+		bool invertPhase = (float)m_invertPhaseValue.getValue() > 0.5f ? true : false;
+		for(int channel = 0; channel < jmin(jmin(totalNumInputChannels, 2), totalNumOutputChannels); ++channel)
 		{
-			int delayWritePosition = (m_delayBufferPosition + numSamplesWritten) % m_delayBuffer.getNumSamples();
-			float* pDelayData = m_delayBuffer.getWritePointer(channel, delayWritePosition);
-			int numSamplesToWrite = juce::jmin(buffer.getNumSamples() - numSamplesWritten, m_delayBuffer.getNumSamples() - delayWritePosition);
-			FloatVectorOperations::copy(pDelayData, pChannelData[channel] + numSamplesWritten, numSamplesToWrite);
-			numSamplesWritten += numSamplesToWrite;
-		}
+			// write to delay buffer
+			int numSamplesWritten = 0;
+			while(numSamplesWritten < buffer.getNumSamples())
+			{
+				int delayWritePosition = (m_delayBufferPosition + numSamplesWritten) % m_delayBuffer.getNumSamples();
+				float* pDelayData = m_delayBuffer.getWritePointer(channel, delayWritePosition);
+				int numSamplesToWrite = juce::jmin(buffer.getNumSamples() - numSamplesWritten, m_delayBuffer.getNumSamples() - delayWritePosition);
+				FloatVectorOperations::copy(pDelayData, pChannelData[channel] + numSamplesWritten, numSamplesToWrite);
+				numSamplesWritten += numSamplesToWrite;
+			}
 
-		// write to output buffer
-		if(m_delayBuffer.getNumSamples() > 0)
-		{
+			// write to output buffer
 			numSamplesWritten = 0;
 			while(numSamplesWritten < buffer.getNumSamples())
 			{
@@ -349,16 +349,16 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 				numSamplesWritten += numSamplesToWrite;
 			}
 		}
-#if USE_LOGGING
-		else
-		{
-			Logger::writeToLog(String("processBlock -> empty delay buffer : delayBufferSize ") + String(m_delayBuffer.getNumSamples()));
-		}
-#endif
-    }
 
-	// update delay buffer position
-	m_delayBufferPosition = (m_delayBufferPosition + buffer.getNumSamples()) % m_delayBuffer.getNumSamples();
+		// update delay buffer position
+		m_delayBufferPosition = (m_delayBufferPosition + buffer.getNumSamples()) % m_delayBuffer.getNumSamples();
+	}
+#if	USE_LOGGING
+	else
+	{
+		Logger::writeToLog(String("processBlock -> empty delay buffer : delayBufferSize ") + String(m_delayBuffer.getNumSamples()));
+	}
+#endif
 }
 
 
