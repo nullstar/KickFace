@@ -15,10 +15,6 @@ TrackControlComponent::TrackControlComponent(bool delayOnTop)
 	, m_listenModeRightButton("R")
 	, m_invertPhaseButton("Invert Phase")
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("TrackControlComponent::construct"));
-#endif
-
 	// initialise delay bar
 	m_delayBar.setRange(-SAMPLE_DELAY_RANGE, SAMPLE_DELAY_RANGE, 0.0f);
 	m_delayBar.setCurrentValue(0.0f);
@@ -57,20 +53,12 @@ TrackControlComponent::TrackControlComponent(bool delayOnTop)
 
 TrackControlComponent::~TrackControlComponent()
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("TrackControlComponent::destruct"));
-#endif
-
 	setAudioSource(nullptr);
 }
 
 
 void TrackControlComponent::setAudioSource(KickFaceAudioProcessor* pProcessor)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("TrackControlComponent::setAudioSource"));
-#endif
-
 	KickFaceAudioProcessor* pPrevProcessor = m_processor.get();
 	if(pPrevProcessor)
 	{
@@ -100,10 +88,6 @@ void TrackControlComponent::paint(Graphics& g)
 
 void TrackControlComponent::resized()
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("TrackControlComponent::resized"));
-#endif
-
 	Rectangle<int> bounds = getLocalBounds();
 
 	m_delayBar.setBounds(m_delayOnTop ? bounds.removeFromTop(TRACKCONTROL_DELAY_HEIGHT) : bounds.removeFromBottom(TRACKCONTROL_DELAY_HEIGHT));
@@ -117,10 +101,6 @@ void TrackControlComponent::resized()
 
 void TrackControlComponent::buttonClicked(Button* pButton)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("TrackControlComponent::buttonClicked"));
-#endif
-
 	KickFaceAudioProcessor* pProcessor = m_processor.get();
 	if(pProcessor == nullptr)
 		return;
@@ -146,10 +126,6 @@ void TrackControlComponent::buttonClicked(Button* pButton)
 
 void TrackControlComponent::valueChanged(Value& value)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("TrackControlComponent::valueChanged"));
-#endif
-
 	KickFaceAudioProcessor* pProcessor = m_processor.get();
 	if(pProcessor == nullptr)
 		return;

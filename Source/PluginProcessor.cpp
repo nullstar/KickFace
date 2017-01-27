@@ -151,10 +151,6 @@ void KickFaceAudioProcessor::changeProgramName(int index, const String& newName)
 
 void KickFaceAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("KickFaceAudioProcessor::prepareToPlay : sampleRate ") + String(sampleRate));
-#endif
-
 	// initialise state
 	m_sampleRate = sampleRate;
 	m_errorState = 0;
@@ -179,10 +175,6 @@ void KickFaceAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBloc
 
 void KickFaceAudioProcessor::releaseResources()
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("KickFaceAudioProcessor::releaseResources"));
-#endif
-
 	m_delayBuffer.setSize(0, 0);
 	m_beatBuffer.setSize(0, 0);
 }
@@ -215,16 +207,15 @@ bool KickFaceAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) 
 
 void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("KickFaceAudioProcessor::processBlock"));
-#endif
+	if(buffer.getNumSamples() <= 0)
+		return;
 
     const int totalNumInputChannels = getTotalNumInputChannels();
     const int totalNumOutputChannels = getTotalNumOutputChannels();
 
     // clear excess output channels
-    for(int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
+	for(int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+		buffer.clear(i, 0, buffer.getNumSamples());
 
 	// check we have input channels
 	if(totalNumInputChannels <= 0)
@@ -316,6 +307,10 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 	}
 	else
 	{
+#if USE_LOGGING
+		Logger::writeToLog(String("processBlock -> no playhead found"));
+#endif
+
 		m_errorState |= (uint32)E_KickFaceError::NoPlayheadFound;
 		m_beatBufferPosition = 0;
 	}
@@ -334,8 +329,17 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 				int delayWritePosition = (m_delayBufferPosition + numSamplesWritten) % m_delayBuffer.getNumSamples();
 				float* pDelayData = m_delayBuffer.getWritePointer(channel, delayWritePosition);
 				int numSamplesToWrite = juce::jmin(buffer.getNumSamples() - numSamplesWritten, m_delayBuffer.getNumSamples() - delayWritePosition);
-				FloatVectorOperations::copy(pDelayData, pChannelData[channel] + numSamplesWritten, numSamplesToWrite);
-				numSamplesWritten += numSamplesToWrite;
+				if(numSamplesToWrite > 0)
+				{
+					FloatVectorOperations::copy(pDelayData, pChannelData[channel] + numSamplesWritten, numSamplesToWrite);
+					numSamplesWritten += numSamplesToWrite;
+				}
+#if USE_LOGGING
+				else
+				{
+					Logger::writeToLog(String("processBlock -> numSamplesToWrite is zero"));
+				}
+#endif
 			}
 
 			// write to output buffer
@@ -346,12 +350,21 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 				const float* pDelayData = m_delayBuffer.getReadPointer(channel, delayReadPosition);
 				int numSamplesToWrite = juce::jmin(buffer.getNumSamples() - numSamplesWritten, m_delayBuffer.getNumSamples() - delayReadPosition);
 
-				if(invertPhase)
-					FloatVectorOperations::copyWithMultiply(pChannelData[channel] + numSamplesWritten, pDelayData, -1.0f, numSamplesToWrite);
-				else
-					FloatVectorOperations::copy(pChannelData[channel] + numSamplesWritten, pDelayData, numSamplesToWrite);
+				if(numSamplesToWrite)
+				{
+					if(invertPhase)
+						FloatVectorOperations::copyWithMultiply(pChannelData[channel] + numSamplesWritten, pDelayData, -1.0f, numSamplesToWrite);
+					else
+						FloatVectorOperations::copy(pChannelData[channel] + numSamplesWritten, pDelayData, numSamplesToWrite);
 
-				numSamplesWritten += numSamplesToWrite;
+					numSamplesWritten += numSamplesToWrite;
+				}
+#if USE_LOGGING
+				else
+				{
+					Logger::writeToLog(String("processBlock -> numSamplesToWrite is zero"));
+				}
+#endif
 			}
 		}
 
@@ -375,20 +388,12 @@ bool KickFaceAudioProcessor::hasEditor() const
 
 AudioProcessorEditor* KickFaceAudioProcessor::createEditor()
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("KickFaceAudioProcessor::createEditor"));
-#endif
-
     return new KickFaceAudioProcessorEditor(*this);
 }
 
 
 void KickFaceAudioProcessor::getStateInformation(MemoryBlock& destData)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("KickFaceAudioProcessor::getStateInformation"));
-#endif
-
 	ScopedPointer<juce::XmlElement> pXml = new juce::XmlElement("KickFaceState");
 	pXml->setAttribute("GivenName", m_givenName);
 	pXml->addChildElement(m_parameters.state.createXml());
@@ -398,10 +403,6 @@ void KickFaceAudioProcessor::getStateInformation(MemoryBlock& destData)
 
 void KickFaceAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("KickFaceAudioProcessor::setStateInformation"));
-#endif
-
 	ScopedPointer<juce::XmlElement> pXml(getXmlFromBinary(data, sizeInBytes));
 	if(pXml != nullptr)
 	{
@@ -451,10 +452,6 @@ int KickFaceAudioProcessor::getInstanceId() const
 
 void KickFaceAudioProcessor::setGivenName(const String& name)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("KickFaceAudioProcessor::setGivenName"));
-#endif
-
 	m_givenName = name;
 	GlobalProcessorArray::processorGivenNameChanged(this);
 }
@@ -468,10 +465,6 @@ const String& KickFaceAudioProcessor::getGivenName() const
 
 void KickFaceAudioProcessor::generateInstanceId()
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("KickFaceAudioProcessor::generateInstanceId"));
-#endif
-
 	m_instanceId = -1;
 
 	int instanceId = -1;
@@ -490,10 +483,6 @@ void KickFaceAudioProcessor::generateInstanceId()
 
 void KickFaceAudioProcessor::generateGivenName()
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("KickFaceAudioProcessor::generateGivenName"));
-#endif
-
 	static juce::Random rand;
 	static std::vector<int> nameDefIndices;
 	nameDefIndices.clear();

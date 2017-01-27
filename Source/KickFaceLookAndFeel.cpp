@@ -18,10 +18,6 @@ Typeface::Ptr KickFaceLookAndFeel::getTypefaceForFont(const juce::Font& font)
 
 void KickFaceLookAndFeel::drawSwingBar(Graphics& g, int width, int height, SwingBarComponent& swingBar)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("KickFaceLookAndFeel::drawSwingBar"));
-#endif
-
 	float pivotRatio = jlimit(0.0f, 1.0f, (swingBar.getPivotValue() - swingBar.getMinValue()) / (swingBar.getMaxValue() - swingBar.getMinValue()));
 	float currentRatio = jlimit(0.0f, 1.0f, (swingBar.getCurrentValue() - swingBar.getMinValue()) / (swingBar.getMaxValue() - swingBar.getMinValue()));
 
@@ -41,10 +37,6 @@ void KickFaceLookAndFeel::drawSwingBar(Graphics& g, int width, int height, Swing
 
 void KickFaceLookAndFeel::drawButtonBackground(Graphics& g, Button& button, const Colour& backgroundColour, bool isMouseOverButton, bool isButtonDown)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("KickFaceLookAndFeel::drawButtonBackground"));
-#endif
-
 	g.setColour(isMouseOverButton ? backgroundColour.brighter(0.05f) : backgroundColour);
 	g.fillRect(0, 0, button.getWidth(), button.getHeight());
 }

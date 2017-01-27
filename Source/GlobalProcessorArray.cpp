@@ -8,10 +8,6 @@ std::vector<WeakReference<GlobalProcessorArray::Listener>> GlobalProcessorArray:
 
 void GlobalProcessorArray::addProcessor(KickFaceAudioProcessor* pProcessor)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("GlobalProcessorArray::addProcessor"));
-#endif
-
 	if(pProcessor == nullptr)
 		return;
 
@@ -31,10 +27,6 @@ void GlobalProcessorArray::addProcessor(KickFaceAudioProcessor* pProcessor)
 
 void GlobalProcessorArray::removeProcessor(KickFaceAudioProcessor* pProcessor)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("GlobalProcessorArray::removeProcessor"));
-#endif
-
 	if(pProcessor == nullptr)
 		return;
 
@@ -64,10 +56,6 @@ void GlobalProcessorArray::removeProcessor(KickFaceAudioProcessor* pProcessor)
 
 void GlobalProcessorArray::processorGivenNameChanged(KickFaceAudioProcessor* pProcessor)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("GlobalProcessorArray::processorGivenNameChanged"));
-#endif
-
 	for(int i = 0; i < s_listeners.size(); ++i)
 	{
 		Listener* pListener = s_listeners[i].get();
@@ -79,20 +67,12 @@ void GlobalProcessorArray::processorGivenNameChanged(KickFaceAudioProcessor* pPr
 
 const std::vector<WeakReference<KickFaceAudioProcessor>>& GlobalProcessorArray::getProcessors()
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("GlobalProcessorArray::getProcessors"));
-#endif
-
 	return s_processorArray;
 }
 
 
 KickFaceAudioProcessor* GlobalProcessorArray::getProcessorById(int id)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("GlobalProcessorArray::getProcessorById"));
-#endif
-
 	for(int i = 0; i < s_processorArray.size(); ++i)
 	{
 		KickFaceAudioProcessor* pProcessor = s_processorArray[i].get();
@@ -105,10 +85,6 @@ KickFaceAudioProcessor* GlobalProcessorArray::getProcessorById(int id)
 
 void GlobalProcessorArray::addListener(Listener* pListener)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("GlobalProcessorArray::addListener"));
-#endif
-
 	if(pListener == nullptr)
 		return;
 
@@ -122,10 +98,6 @@ void GlobalProcessorArray::addListener(Listener* pListener)
 
 void GlobalProcessorArray::removeListener(Listener* pListener)
 {
-#if USE_LOGGING
-	Logger::writeToLog(String("GlobalProcessorArray::removeListener"));
-#endif
-
 	if(pListener == nullptr)
 		return;
 
