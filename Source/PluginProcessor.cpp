@@ -55,6 +55,7 @@ KickFaceAudioProcessor::KickFaceAudioProcessor()
 {
 #if USE_LOGGING
 	m_pFileLogger = FileLogger::createDateStampedLogger("KickFace", "KickFace_", ".txt", g_logWelcomeMessage);
+	Logger::setCurrentLogger(m_pFileLogger);
 #endif
 
 	setLatencySamples(SAMPLE_DELAY_RANGE);
