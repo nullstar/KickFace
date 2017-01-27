@@ -377,7 +377,7 @@ void AudioDisplayComponent::renderAudioSource(AudioSource& audioSource, const st
 
 	// update mesh
 	AudioSampleBuffer* pBeatBuffer = pProcessor->getBeatBuffer();
-	if(pBeatBuffer)
+	if(pBeatBuffer && pBeatBuffer->getNumSamples() > 0)
 	{
 		const int numBeatSamples = pBeatBuffer->getNumSamples();
 		const float sampleScale = (float)numBeatSamples / AUDIODISPLAY_NUM_QUADS;
@@ -456,7 +456,7 @@ void AudioDisplayComponent::renderCombinedAudioSource(CombinedAudioSource& combi
 	for(int i = 0; i < combinedSource.m_audioSources.size(); ++i)
 	{
 		AudioSource* pAudioSource = combinedSource.m_audioSources[i];
-		if(pAudioSource && pAudioSource->m_processor.get() && pAudioSource->m_processor->getBeatBuffer())
+		if(pAudioSource && pAudioSource->m_processor.get() && pAudioSource->m_processor->getBeatBuffer() && pAudioSource->m_processor->getBeatBuffer()->getNumSamples() > 0)
 		{
 			RenderAudioSource renderSource;
 			renderSource.m_pAudioSource = pAudioSource;
@@ -474,76 +474,79 @@ void AudioDisplayComponent::renderCombinedAudioSource(CombinedAudioSource& combi
 
 	// update mesh
 	const int numBeatSamples = m_renderAudioSources[0].m_pBeatBuffer->getNumSamples();
-	const float sampleScale = (float)numBeatSamples / AUDIODISPLAY_NUM_QUADS;
-
-	int beatBufferChangeSampleStart = Math::positiveModulo(m_renderAudioSources[0].m_pAudioSource->m_prevCache.m_beatBufferPosition + m_renderAudioSources[0].m_nextCache.m_delaySamples - (int)ceilf(sampleScale), numBeatSamples);
-	int beatBufferChangeSampleEnd = Math::positiveModulo(m_renderAudioSources[0].m_nextCache.m_beatBufferPosition + m_renderAudioSources[0].m_nextCache.m_delaySamples + (int)ceilf(sampleScale), numBeatSamples);
-	for(int i = 1; i < m_renderAudioSources.size(); ++i)
+	if(numBeatSamples > 0)
 	{
-		beatBufferChangeSampleStart = jmin(beatBufferChangeSampleStart, Math::positiveModulo(m_renderAudioSources[i].m_pAudioSource->m_prevCache.m_beatBufferPosition + m_renderAudioSources[i].m_nextCache.m_delaySamples - (int)ceilf(sampleScale), numBeatSamples));
-		beatBufferChangeSampleEnd = jmax(beatBufferChangeSampleEnd, Math::positiveModulo(m_renderAudioSources[i].m_nextCache.m_beatBufferPosition + m_renderAudioSources[i].m_nextCache.m_delaySamples + (int)ceilf(sampleScale), numBeatSamples));
-	}
+		const float sampleScale = (float)numBeatSamples / AUDIODISPLAY_NUM_QUADS;
 
-	const int viewStartBeatSample = (int)floorf(m_viewStartRatio * numBeatSamples);
-	const int viewEndBeatSample = (int)ceilf(m_viewEndRatio * numBeatSamples);
-	const float viewScale = (float)(viewEndBeatSample - viewStartBeatSample) / AUDIODISPLAY_NUM_QUADS;
-
-	int startQuad = 0;
-	int endQuad = AUDIODISPLAY_NUM_QUADS - 1;
-
-	for(int i = 0; i < m_renderAudioSources.size(); ++i)
-	{
-		m_renderAudioSources[i].m_sampleSign = m_renderAudioSources[i].m_nextCache.m_invertPhase ? -1.0f : 1.0f;
-		m_renderAudioSources[i].m_pReadBuffer = m_renderAudioSources[i].m_pBeatBuffer->getReadPointer(0);
-	}
-
-	const float kVertDepth = 0.5f;
-	float vertXScale = 2.0f / AUDIODISPLAY_NUM_QUADS;
-	float vertXPos = -1.0f;
-	float vertYScale = 1.0f;
-	float vertYPos = 0.0f;
-	std::array<ColQuadVert, 4> verts;
-
-	float startSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + (startQuad * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
-	float endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((startQuad + 1) * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
-	for(int i = 1; i < m_renderAudioSources.size(); ++i)
-	{
-		startSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + (startQuad * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
-		endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((startQuad + 1) * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
-	}
-
-	for(int q = startQuad; q <= endQuad; ++q)
-	{
-		verts[0].m_position[0] = vertXPos + ((q - 1) * vertXScale);
-		verts[0].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (startSample * vertYScale));
-		verts[0].m_position[2] = kVertDepth;
-
-		verts[1].m_position[0] = vertXPos + (q * vertXScale);
-		verts[1].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (endSample * vertYScale));
-		verts[1].m_position[2] = kVertDepth;
-
-		verts[2].m_position[0] = vertXPos + (q * vertXScale);
-		verts[2].m_position[1] = vertYPos;
-		verts[2].m_position[2] = kVertDepth;
-
-		verts[3].m_position[0] = vertXPos + ((q - 1) * vertXScale);
-		verts[3].m_position[1] = vertYPos;
-		verts[3].m_position[2] = kVertDepth;
-
-		for(int j = 0; j < 4; ++j)
+		int beatBufferChangeSampleStart = Math::positiveModulo(m_renderAudioSources[0].m_pAudioSource->m_prevCache.m_beatBufferPosition + m_renderAudioSources[0].m_nextCache.m_delaySamples - (int)ceilf(sampleScale), numBeatSamples);
+		int beatBufferChangeSampleEnd = Math::positiveModulo(m_renderAudioSources[0].m_nextCache.m_beatBufferPosition + m_renderAudioSources[0].m_nextCache.m_delaySamples + (int)ceilf(sampleScale), numBeatSamples);
+		for(int i = 1; i < m_renderAudioSources.size(); ++i)
 		{
-			verts[j].m_colour[0] = colour[0];
-			verts[j].m_colour[1] = colour[1];
-			verts[j].m_colour[2] = colour[2];
-			verts[j].m_colour[3] = colour[3];
+			beatBufferChangeSampleStart = jmin(beatBufferChangeSampleStart, Math::positiveModulo(m_renderAudioSources[i].m_pAudioSource->m_prevCache.m_beatBufferPosition + m_renderAudioSources[i].m_nextCache.m_delaySamples - (int)ceilf(sampleScale), numBeatSamples));
+			beatBufferChangeSampleEnd = jmax(beatBufferChangeSampleEnd, Math::positiveModulo(m_renderAudioSources[i].m_nextCache.m_beatBufferPosition + m_renderAudioSources[i].m_nextCache.m_delaySamples + (int)ceilf(sampleScale), numBeatSamples));
 		}
 
-		combinedSource.m_pQuadMesh->setQuad(q, verts);
+		const int viewStartBeatSample = (int)floorf(m_viewStartRatio * numBeatSamples);
+		const int viewEndBeatSample = (int)ceilf(m_viewEndRatio * numBeatSamples);
+		const float viewScale = (float)(viewEndBeatSample - viewStartBeatSample) / AUDIODISPLAY_NUM_QUADS;
 
-		startSample = endSample;
-		endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
+		int startQuad = 0;
+		int endQuad = AUDIODISPLAY_NUM_QUADS - 1;
+
+		for(int i = 0; i < m_renderAudioSources.size(); ++i)
+		{
+			m_renderAudioSources[i].m_sampleSign = m_renderAudioSources[i].m_nextCache.m_invertPhase ? -1.0f : 1.0f;
+			m_renderAudioSources[i].m_pReadBuffer = m_renderAudioSources[i].m_pBeatBuffer->getReadPointer(0);
+		}
+
+		const float kVertDepth = 0.5f;
+		float vertXScale = 2.0f / AUDIODISPLAY_NUM_QUADS;
+		float vertXPos = -1.0f;
+		float vertYScale = 1.0f;
+		float vertYPos = 0.0f;
+		std::array<ColQuadVert, 4> verts;
+
+		float startSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + (startQuad * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
+		float endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((startQuad + 1) * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
 		for(int i = 1; i < m_renderAudioSources.size(); ++i)
-			endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
+		{
+			startSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + (startQuad * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
+			endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((startQuad + 1) * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
+		}
+
+		for(int q = startQuad; q <= endQuad; ++q)
+		{
+			verts[0].m_position[0] = vertXPos + ((q - 1) * vertXScale);
+			verts[0].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (startSample * vertYScale));
+			verts[0].m_position[2] = kVertDepth;
+
+			verts[1].m_position[0] = vertXPos + (q * vertXScale);
+			verts[1].m_position[1] = jlimit(-1.0f, 1.0f, vertYPos + (endSample * vertYScale));
+			verts[1].m_position[2] = kVertDepth;
+
+			verts[2].m_position[0] = vertXPos + (q * vertXScale);
+			verts[2].m_position[1] = vertYPos;
+			verts[2].m_position[2] = kVertDepth;
+
+			verts[3].m_position[0] = vertXPos + ((q - 1) * vertXScale);
+			verts[3].m_position[1] = vertYPos;
+			verts[3].m_position[2] = kVertDepth;
+
+			for(int j = 0; j < 4; ++j)
+			{
+				verts[j].m_colour[0] = colour[0];
+				verts[j].m_colour[1] = colour[1];
+				verts[j].m_colour[2] = colour[2];
+				verts[j].m_colour[3] = colour[3];
+			}
+
+			combinedSource.m_pQuadMesh->setQuad(q, verts);
+
+			startSample = endSample;
+			endSample = m_renderAudioSources[0].m_sampleSign * sampleBuffer(m_renderAudioSources[0].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[0].m_nextCache.m_delaySamples);
+			for(int i = 1; i < m_renderAudioSources.size(); ++i)
+				endSample += m_renderAudioSources[i].m_sampleSign * sampleBuffer(m_renderAudioSources[i].m_pReadBuffer, numBeatSamples, viewStartBeatSample + ((q + 2) * viewScale) - m_renderAudioSources[i].m_nextCache.m_delaySamples);
+		}
 	}
 	
 	// render
@@ -580,10 +583,14 @@ void AudioDisplayComponent::resized()
 
 float AudioDisplayComponent::sampleBuffer(const float* pReadBuffer, int bufferSize, float samplePosition) const
 {
-	int sampleIndex = (int)floorf(samplePosition);
-	float sampleRatio = samplePosition - sampleIndex;
-	return (pReadBuffer[Math::positiveModulo(sampleIndex, bufferSize)] * (1.0f - sampleRatio))
-		+ (pReadBuffer[Math::positiveModulo(sampleIndex + 1, bufferSize)] * sampleRatio);
+	if(bufferSize > 0)
+	{
+		int sampleIndex = (int)floorf(samplePosition);
+		float sampleRatio = samplePosition - sampleIndex;
+		return (pReadBuffer[Math::positiveModulo(sampleIndex, bufferSize)] * (1.0f - sampleRatio))
+			+ (pReadBuffer[Math::positiveModulo(sampleIndex + 1, bufferSize)] * sampleRatio);
+	}
+	return 0.0f;
 }
 
 

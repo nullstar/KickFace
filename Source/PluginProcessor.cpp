@@ -6,6 +6,15 @@
 
 
 
+#if USE_LOGGING
+String g_logWelcomeMessage =
+"--------------------------------------------------------------------\n"
+"-----------------------------START----------------------------------\n"
+"KICKFACE v1.0";
+#endif
+
+
+
 String KickFaceAudioProcessor::s_nameDefs[] = {
 	"Athelstan",
 	"Quentin",
@@ -36,16 +45,19 @@ KickFaceAudioProcessor::KickFaceAudioProcessor()
                        .withOutput ("Output", AudioChannelSet::stereo(), true)
                      #endif
                        )
+#endif
 	, m_instanceId(-1)
 	, m_parameters(*this, nullptr)
 	, m_sampleRate(0.0)
 	, m_beatBufferPosition(0)
 	, m_delayBufferPosition(0)
 	, m_errorState(0)
-#endif
 {
+#if USE_LOGGING
+	m_pFileLogger = FileLogger::createDateStampedLogger("KickFace", "KickFace_", ".txt", g_logWelcomeMessage);
+#endif
+
 	setLatencySamples(SAMPLE_DELAY_RANGE);
-	m_pBeatBuffer = new AudioSampleBuffer();
 
 	m_parameters.createAndAddParameter("delay", "Delay", "delay", NormalisableRange<float>(-SAMPLE_DELAY_RANGE, SAMPLE_DELAY_RANGE, 1.0f), 0.0f, nullptr, nullptr);
 	m_parameters.createAndAddParameter("invertPhase", "InvertPhase", "invertPhase", NormalisableRange<float>(0.0f, 1.0f, 1.0f), 0.0f, invertPhaseToText, textToInvertPhase);
@@ -67,6 +79,11 @@ KickFaceAudioProcessor::~KickFaceAudioProcessor()
 {
 	GlobalProcessorArray::removeProcessor(this);
 	masterReference.clear();
+
+#if USE_LOGGING
+	Logger::setCurrentLogger(nullptr);
+	m_pFileLogger = nullptr;
+#endif
 }
 
 
@@ -138,7 +155,7 @@ void KickFaceAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBloc
 	m_errorState = 0;
 
 	// prepare beat buffer
-	m_pBeatBuffer->clear();
+	m_beatBuffer.clear();
 
 	// prepare delay buffer
 	m_delayBuffer.setSize(2, 2 * SAMPLE_DELAY_RANGE);
@@ -152,14 +169,21 @@ void KickFaceAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBloc
 	// prepare test tone
 	m_testTone.prepareToPlay(sampleRate);
 #endif
+
+#if USE_LOGGING
+	Logger::writeToLog(String("prepareToPlay : sampleRate ") + String(m_sampleRate));
+#endif
 }
 
 
 void KickFaceAudioProcessor::releaseResources()
 {
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
 	m_delayBuffer.setSize(0, 0);
+	m_beatBuffer.setSize(0, 0);
+
+#if USE_LOGGING
+	Logger::writeToLog(String("releaseResources"));
+#endif
 }
 
 
@@ -225,48 +249,65 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 	AudioPlayHead::CurrentPositionInfo posInfo;
 	if(getPlayHead()->getCurrentPosition(posInfo))
 	{
-		double bpm = posInfo.bpm ? posInfo.bpm : DEFAULT_BPM;
-		m_timeInSamples = posInfo.timeInSamples ? posInfo.timeInSamples : m_timeInSamples;
+#if USE_PLUGIN_HOST
+		double bpm = DEFAULT_BPM;
+		m_timeInSamples = m_timeInSamples;
+#else
+		double bpm = posInfo.bpm;
+		m_timeInSamples = posInfo.timeInSamples;
+#endif
 
-		const int64 numSamplesPerBeat = (int64)ceil(m_sampleRate * 60.0 / bpm);
-		m_pBeatBuffer->setSize(1, numSamplesPerBeat, true, true, true);
+		const int64 numSamplesPerBeat = (bpm > 0.0) ? (int64)ceil(m_sampleRate * 60.0 / bpm) : 0;
+		m_beatBuffer.setSize(1, numSamplesPerBeat, true, true, true);
 
-		E_ListenMode listenMode = (E_ListenMode)juce::roundFloatToInt((float)m_listenModeValue.getValue());
-		if(totalNumInputChannels > 1 && listenMode == E_ListenMode::SumLeftAndRightChannels)
+		if(m_beatBuffer.getNumSamples() > 0 && numSamplesPerBeat > 0)
 		{
-			int64 numSamplesWritten = 0;
-			while(numSamplesWritten < buffer.getNumSamples())
+			E_ListenMode listenMode = (E_ListenMode)juce::roundFloatToInt((float)m_listenModeValue.getValue());
+			if(totalNumInputChannels > 1 && listenMode == E_ListenMode::SumLeftAndRightChannels)
 			{
-				// write data into beat buffer
-				const int64 numSamplesFromBeatStart = (m_timeInSamples + numSamplesWritten) % numSamplesPerBeat;
-				const int64 numSamplesToWrite = jmin<int64>(buffer.getNumSamples(), numSamplesPerBeat - numSamplesFromBeatStart);
-				float* pWriteData = m_pBeatBuffer->getWritePointer(0, numSamplesFromBeatStart);
-				FloatVectorOperations::copyWithMultiply(pWriteData, pChannelData[0] + numSamplesWritten, 0.5f, numSamplesToWrite);
-				FloatVectorOperations::addWithMultiply(pWriteData, pChannelData[1] + numSamplesWritten, 0.5f, numSamplesToWrite);
-				numSamplesWritten += numSamplesToWrite;
+				int64 numSamplesWritten = 0;
+				while(numSamplesWritten < buffer.getNumSamples())
+				{
+					// write data into beat buffer
+					const int64 numSamplesFromBeatStart = (m_timeInSamples + numSamplesWritten) % numSamplesPerBeat;
+					const int64 numSamplesToWrite = jmin<int64>(buffer.getNumSamples(), numSamplesPerBeat - numSamplesFromBeatStart);
+					float* pWriteData = m_beatBuffer.getWritePointer(0, numSamplesFromBeatStart);
+					FloatVectorOperations::copyWithMultiply(pWriteData, pChannelData[0] + numSamplesWritten, 0.5f, numSamplesToWrite);
+					FloatVectorOperations::addWithMultiply(pWriteData, pChannelData[1] + numSamplesWritten, 0.5f, numSamplesToWrite);
+					numSamplesWritten += numSamplesToWrite;
+				}
+			}
+			else
+			{
+				const float* pReadData = (totalNumInputChannels == 1) ? pChannelData[0] : pChannelData[(int)listenMode];
+
+				int64 numSamplesWritten = 0;
+				while(numSamplesWritten < buffer.getNumSamples())
+				{
+					// write data into beat buffer
+					const int64 numSamplesFromBeatStart = (m_timeInSamples + numSamplesWritten) % numSamplesPerBeat;
+					const int64 numSamplesToWrite = jmin<int64>(buffer.getNumSamples(), numSamplesPerBeat - numSamplesFromBeatStart);
+					float* pWriteData = m_beatBuffer.getWritePointer(0, numSamplesFromBeatStart);
+					FloatVectorOperations::copy(pWriteData, pReadData + numSamplesWritten, numSamplesToWrite);
+					numSamplesWritten += numSamplesToWrite;
+				}
 			}
 		}
+#if USE_LOGGING
 		else
 		{
-			const float* pReadData = (totalNumInputChannels == 1) ? pChannelData[0] : pChannelData[(int)listenMode];
-
-			int64 numSamplesWritten = 0;
-			while(numSamplesWritten < buffer.getNumSamples())
-			{
-				// write data into beat buffer
-				const int64 numSamplesFromBeatStart = (m_timeInSamples + numSamplesWritten) % numSamplesPerBeat;
-				const int64 numSamplesToWrite = jmin<int64>(buffer.getNumSamples(), numSamplesPerBeat - numSamplesFromBeatStart);
-				float* pWriteData = m_pBeatBuffer->getWritePointer(0, numSamplesFromBeatStart);
-				FloatVectorOperations::copy(pWriteData, pReadData + numSamplesWritten, numSamplesToWrite);
-				numSamplesWritten += numSamplesToWrite;
-			}
+			Logger::writeToLog(String("processBlock -> empty beat buffer : beatBufferSize ") + String(m_beatBuffer.getNumSamples())
+				+ String(" : sampleRate ") + String(m_sampleRate)
+				+ String(" : bpm ") + String(bpm)
+				+ String(" : numSamplesPerBeat ") + String(numSamplesPerBeat));
 		}
+#endif
 
 		m_beatBufferPosition = (m_timeInSamples + buffer.getNumSamples()) % numSamplesPerBeat;
 
-		// update time
-		if(posInfo.timeInSamples == 0)
-			m_timeInSamples += buffer.getNumSamples();
+#if USE_PLUGIN_HOST
+		m_timeInSamples += buffer.getNumSamples();
+#endif
 	}
 	else
 	{
@@ -291,20 +332,29 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 		}
 
 		// write to output buffer
-		numSamplesWritten = 0;
-		while(numSamplesWritten < buffer.getNumSamples())
+		if(m_delayBuffer.getNumSamples() > 0)
 		{
-			int delayReadPosition = Math::positiveModulo(m_delayBufferPosition + numSamplesWritten - delay - SAMPLE_DELAY_RANGE, m_delayBuffer.getNumSamples());
-			const float* pDelayData = m_delayBuffer.getReadPointer(channel, delayReadPosition);
-			int numSamplesToWrite = juce::jmin(buffer.getNumSamples() - numSamplesWritten, m_delayBuffer.getNumSamples() - delayReadPosition);
+			numSamplesWritten = 0;
+			while(numSamplesWritten < buffer.getNumSamples())
+			{
+				int delayReadPosition = Math::positiveModulo(m_delayBufferPosition + numSamplesWritten - delay - SAMPLE_DELAY_RANGE, m_delayBuffer.getNumSamples());
+				const float* pDelayData = m_delayBuffer.getReadPointer(channel, delayReadPosition);
+				int numSamplesToWrite = juce::jmin(buffer.getNumSamples() - numSamplesWritten, m_delayBuffer.getNumSamples() - delayReadPosition);
 
-			if(invertPhase)
-				FloatVectorOperations::copyWithMultiply(pChannelData[channel] + numSamplesWritten, pDelayData, -1.0f, numSamplesToWrite);
-			else
-				FloatVectorOperations::copy(pChannelData[channel] + numSamplesWritten, pDelayData, numSamplesToWrite);
+				if(invertPhase)
+					FloatVectorOperations::copyWithMultiply(pChannelData[channel] + numSamplesWritten, pDelayData, -1.0f, numSamplesToWrite);
+				else
+					FloatVectorOperations::copy(pChannelData[channel] + numSamplesWritten, pDelayData, numSamplesToWrite);
 
-			numSamplesWritten += numSamplesToWrite;
+				numSamplesWritten += numSamplesToWrite;
+			}
 		}
+#if USE_LOGGING
+		else
+		{
+			Logger::writeToLog(String("processBlock -> empty delay buffer : delayBufferSize ") + String(m_delayBuffer.getNumSamples()));
+		}
+#endif
     }
 
 	// update delay buffer position
@@ -358,9 +408,9 @@ void KickFaceAudioProcessor::setStateInformation(const void* data, int sizeInByt
 }
 
 
-AudioSampleBuffer* KickFaceAudioProcessor::getBeatBuffer() const
+AudioSampleBuffer* KickFaceAudioProcessor::getBeatBuffer()
 {
-	return m_pBeatBuffer;
+	return &m_beatBuffer;
 }
 
 

@@ -5,7 +5,10 @@
 #include "ToneGenerator.h"
 
 
+#define USE_PLUGIN_HOST 0
 #define USE_TEST_TONE 0
+#define USE_LOGGING 1
+
 #define DEFAULT_BPM 100
 #define SAMPLE_DELAY_RANGE 2000 
 #define PROCESS_INSTANCE_ID_START 2
@@ -64,7 +67,7 @@ public:
     void getStateInformation(MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-	AudioSampleBuffer* getBeatBuffer() const;
+	AudioSampleBuffer* getBeatBuffer();
 	int64 getBeatBufferPosition() const;
 
 	Value& getDelayValue() { return m_delayValue; }
@@ -86,6 +89,10 @@ private:
 	static String listenModeToText(float value);
 	static float textToListenMode(const String& text);
 
+#if USE_LOGGING
+	ScopedPointer<juce::FileLogger> m_pFileLogger;
+#endif
+
 	int m_instanceId;
 
 	AudioProcessorValueTreeState m_parameters;
@@ -96,7 +103,7 @@ private:
 
 	double m_sampleRate;
 
-	ScopedPointer<AudioSampleBuffer> m_pBeatBuffer;
+	AudioSampleBuffer m_beatBuffer;
 	int64 m_beatBufferPosition;
 
 	AudioSampleBuffer m_delayBuffer;
