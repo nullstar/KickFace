@@ -34,10 +34,10 @@ void main()\
 
 
 const char* gTexQuadVertexShaderSource =
-"in vec3 v_position;\
-in vec2 v_texCoord;\
+"attribute vec3 v_position;\
+attribute vec2 v_texCoord;\
 \
-out vec2 f_texCoord;\
+varying vec2 f_texCoord;\
 \
 void main()\
 {\
@@ -47,15 +47,13 @@ void main()\
 
 
 const char* gTexQuadFragmentShaderSource =
-"in vec2 f_texCoord;\
-\
-out vec4 out_colour;\
+"varying vec2 f_texCoord;\
 \
 uniform sampler2D texture0;\
 \
 void main()\
 {\
-	out_colour = texture2D(texture0, f_texCoord);\
+	gl_FragColor = texture2D(texture0, f_texCoord);\
 }";
 
 
