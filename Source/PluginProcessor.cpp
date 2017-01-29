@@ -253,10 +253,11 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 		m_timeInSamples = posInfo.timeInSamples;
 #endif
 
-		const int64 numSamplesPerBeat = (bpm > 0.0) ? (int64)ceil(m_sampleRate * 60.0 / bpm) : 0;
-		m_beatBuffer.setSize(1, numSamplesPerBeat, true, true, true);
+		const double numSamplesPerBeatReal = (bpm > 0.0) ? m_sampleRate * 60.0 / bpm : 0.0;
+		const int64 numSamplesPerBeatInt = (int64)ceil(numSamplesPerBeatReal);
+		m_beatBuffer.setSize(1, numSamplesPerBeatInt, true, true, true);
 
-		if(m_beatBuffer.getNumSamples() > 0 && numSamplesPerBeat > 0)
+		if(m_beatBuffer.getNumSamples() > 0 && numSamplesPerBeatInt > 0)
 		{
 			E_ListenMode listenMode = (E_ListenMode)juce::roundFloatToInt((float)m_listenModeValue.getValue());
 			if(totalNumInputChannels > 1 && listenMode == E_ListenMode::SumLeftAndRightChannels)
@@ -265,8 +266,8 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 				while(numSamplesWritten < buffer.getNumSamples())
 				{
 					// write data into beat buffer
-					const int64 numSamplesFromBeatStart = (m_timeInSamples + numSamplesWritten) % numSamplesPerBeat;
-					const int64 numSamplesToWrite = jmin<int64>(buffer.getNumSamples(), numSamplesPerBeat - numSamplesFromBeatStart);
+					const int64 numSamplesFromBeatStart = (int64)fmod(m_timeInSamples + numSamplesWritten, numSamplesPerBeatReal);
+					const int64 numSamplesToWrite = jmin<int64>(buffer.getNumSamples(), numSamplesPerBeatInt - numSamplesFromBeatStart);
 					float* pWriteData = m_beatBuffer.getWritePointer(0, numSamplesFromBeatStart);
 					FloatVectorOperations::copyWithMultiply(pWriteData, pChannelData[0] + numSamplesWritten, 0.5f, numSamplesToWrite);
 					FloatVectorOperations::addWithMultiply(pWriteData, pChannelData[1] + numSamplesWritten, 0.5f, numSamplesToWrite);
@@ -281,15 +282,15 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 				while(numSamplesWritten < buffer.getNumSamples())
 				{
 					// write data into beat buffer
-					const int64 numSamplesFromBeatStart = (m_timeInSamples + numSamplesWritten) % numSamplesPerBeat;
-					const int64 numSamplesToWrite = jmin<int64>(buffer.getNumSamples(), numSamplesPerBeat - numSamplesFromBeatStart);
+					const int64 numSamplesFromBeatStart = (int64)fmod(m_timeInSamples + numSamplesWritten, numSamplesPerBeatReal);
+					const int64 numSamplesToWrite = jmin<int64>(buffer.getNumSamples(), numSamplesPerBeatInt - numSamplesFromBeatStart);
 					float* pWriteData = m_beatBuffer.getWritePointer(0, numSamplesFromBeatStart);
 					FloatVectorOperations::copy(pWriteData, pReadData + numSamplesWritten, numSamplesToWrite);
 					numSamplesWritten += numSamplesToWrite;
 				}
 			}
 
-			m_beatBufferPosition = (m_timeInSamples + buffer.getNumSamples()) % numSamplesPerBeat;
+			m_beatBufferPosition = (int64)fmod(m_timeInSamples + buffer.getNumSamples(), numSamplesPerBeatReal);
 		}
 #if USE_LOGGING
 		else
@@ -297,7 +298,7 @@ void KickFaceAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&
 			Logger::writeToLog(String("processBlock -> empty beat buffer : beatBufferSize ") + String(m_beatBuffer.getNumSamples())
 				+ String(" : sampleRate ") + String(m_sampleRate)
 				+ String(" : bpm ") + String(bpm)
-				+ String(" : numSamplesPerBeat ") + String(numSamplesPerBeat));
+				+ String(" : numSamplesPerBeat ") + String(numSamplesPerBeatInt));
 		}
 #endif
 
