@@ -65,6 +65,7 @@ AudioDisplayComponent::AudioDisplayComponent(KickFaceAudioProcessor& processor)
 	, m_zoomLevel(0.0f)
 	, m_dragMode(E_DragMode::None)
 	, m_dragSamples(0)
+	, m_resizeImages(false)
 {
 	m_localAudioSource.m_processor = &processor;
 	m_localAudioSource.m_pQuadMesh = nullptr;
@@ -229,6 +230,7 @@ void AudioDisplayComponent::initialiseOpenGL()
 	m_localAudioSource.m_image = Image(Image::ARGB, AUDIODISPLAY_UPSCALE * getWidth(), AUDIODISPLAY_UPSCALE * getHeight(), true, OpenGLImageType());
 	m_remoteAudioSource.m_image = Image(Image::ARGB, AUDIODISPLAY_UPSCALE * getWidth(), AUDIODISPLAY_UPSCALE * getHeight(), true, OpenGLImageType());
 	m_combinedAudioSource.m_image = Image(Image::ARGB, AUDIODISPLAY_UPSCALE * getWidth(), AUDIODISPLAY_UPSCALE * getHeight(), true, OpenGLImageType());
+	m_resizeImages = false;
 }
 
 
@@ -238,6 +240,15 @@ void AudioDisplayComponent::renderOpenGL()
 
 	// initialise opengl if needed
 	initialiseOpenGL();
+
+	// resize images if needed
+	if(m_resizeImages && m_pQuadMeshShaderProgram != nullptr)
+	{
+		m_localAudioSource.m_image = Image(Image::ARGB, AUDIODISPLAY_UPSCALE * getWidth(), AUDIODISPLAY_UPSCALE * getHeight(), true, OpenGLImageType());
+		m_remoteAudioSource.m_image = Image(Image::ARGB, AUDIODISPLAY_UPSCALE * getWidth(), AUDIODISPLAY_UPSCALE * getHeight(), true, OpenGLImageType());
+		m_combinedAudioSource.m_image = Image(Image::ARGB, AUDIODISPLAY_UPSCALE * getWidth(), AUDIODISPLAY_UPSCALE * getHeight(), true, OpenGLImageType());
+		m_resizeImages = false;
+	}
 
 	// render waveforms to render targets
 	const float desktopScale = (float)m_openGLContext.getRenderingScale();
@@ -315,7 +326,7 @@ void AudioDisplayComponent::renderOpenGL()
 	m_pQuadMeshShaderProgram->useProgram();
 
 	int numBars = 0;
-	const float timeBarHalfWidth = 0.003f;
+	const float timeBarHalfWidth = 1.0f / getWidth();
 	for(int barIndex = 0; barIndex < 3; ++barIndex)
 	{
 		float xPos = (0.25f * (barIndex + 1) - m_viewStartRatio) / (m_viewEndRatio - m_viewStartRatio);
@@ -571,6 +582,7 @@ void AudioDisplayComponent::paint(Graphics& g)
 
 void AudioDisplayComponent::resized() 
 {
+	m_resizeImages = true;
 }
 
 

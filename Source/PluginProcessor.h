@@ -13,6 +13,13 @@
 #define SAMPLE_DELAY_RANGE 2000 
 #define PROCESS_INSTANCE_ID_START 2
 
+#define DEFAULT_WIDTH 420
+#define DEFAULT_HEIGHT 300
+#define MIN_WIDTH 420
+#define MIN_HEIGHT 300
+#define MAX_WIDTH 1680
+#define MAX_HEIGHT 1200
+
 
 
 enum class E_KickFaceError 
@@ -73,6 +80,10 @@ public:
 	Value& getDelayValue() { return m_delayValue; }
 	Value& getInvertPhaseValue() { return m_invertPhaseValue; }
 	Value& getListenModeValue() { return m_listenModeValue; }
+	
+	int getGuiWidth() { return m_guiWidth; }
+	int getGuiHeight() { return m_guiHeight; }
+	void setGuiDimensions(int width, int height) { m_guiWidth = width; m_guiHeight = height; }
 
 	uint32 getErrorState() const;
 
@@ -98,18 +109,19 @@ private:
 	AudioProcessorValueTreeState m_parameters;
 	Value m_delayValue;
 	Value m_invertPhaseValue;
-	Value m_listenModeValue;
+	Value m_listenModeValue; 
 	String m_givenName;
 
 	double m_sampleRate;
 
 	AudioSampleBuffer m_beatBuffer;
 	int64 m_beatBufferPosition;
-
 	AudioSampleBuffer m_delayBuffer;
 	int m_delayBufferPosition;
-
 	int64 m_timeInSamples;
+
+	int m_guiWidth;
+	int m_guiHeight;
 
 #if USE_TEST_TONE
 	ToneGenerator m_testTone;

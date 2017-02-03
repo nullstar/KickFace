@@ -72,6 +72,9 @@ KickFaceAudioProcessor::KickFaceAudioProcessor()
 	generateInstanceId();
 	generateGivenName();
 
+	m_guiWidth = DEFAULT_WIDTH;
+	m_guiHeight = DEFAULT_HEIGHT;
+
 	GlobalProcessorArray::addProcessor(this);
 }
 
@@ -397,6 +400,8 @@ void KickFaceAudioProcessor::getStateInformation(MemoryBlock& destData)
 {
 	ScopedPointer<juce::XmlElement> pXml = new juce::XmlElement("KickFaceState");
 	pXml->setAttribute("GivenName", m_givenName);
+	pXml->setAttribute("GuiWidth", m_guiWidth);
+	pXml->setAttribute("GuiHeight", m_guiHeight);
 	pXml->addChildElement(m_parameters.state.createXml());
 	copyXmlToBinary(*pXml, destData);
 }
@@ -411,6 +416,12 @@ void KickFaceAudioProcessor::setStateInformation(const void* data, int sizeInByt
 		{
 			if(pXml->hasAttribute("GivenName"))
 				m_givenName = pXml->getStringAttribute("GivenName");
+
+			if(pXml->hasAttribute("GuiWidth"))
+				m_guiWidth = pXml->getIntAttribute("GuiWidth");
+
+			if(pXml->hasAttribute("GuiHeight"))
+				m_guiHeight = pXml->getIntAttribute("GuiHeight");
 
 			for(int childIndex = 0; childIndex < pXml->getNumChildElements(); ++childIndex)
 			{

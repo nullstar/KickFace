@@ -94,8 +94,10 @@ KickFaceAudioProcessorEditor::KickFaceAudioProcessorEditor(KickFaceAudioProcesso
 	m_remoteTrackControl.setLookAndFeel(m_pRemoteLookAndFeel);
 	addAndMakeVisible(m_remoteTrackControl);
 
-	// set size and colour
-	setSize(420, 300);
+	// initialise resizer and set size
+	setResizable(true, true);
+	setSize(p.getGuiWidth(), p.getGuiHeight());
+	setResizeLimits(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT);
 }
 
 
@@ -132,6 +134,11 @@ void KickFaceAudioProcessorEditor::paint(Graphics& g)
 void KickFaceAudioProcessorEditor::resized()
 {
 	Rectangle<int> bounds = getLocalBounds();
+
+	// update gui size
+	m_processor.setGuiDimensions(bounds.getWidth(), bounds.getHeight());
+
+	// position components
 	bounds.reduce(10, 10);
 	bounds.removeFromTop(50);
 

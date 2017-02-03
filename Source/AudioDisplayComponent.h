@@ -105,6 +105,8 @@ private:
 	int m_dragSamples;
 	float m_dragViewStart;
 
+	bool m_resizeImages;
+
 	std::vector<RenderAudioSource> m_renderAudioSources;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioDisplayComponent)

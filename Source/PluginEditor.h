@@ -7,7 +7,8 @@
 #include "GlobalProcessorArray.h"
 
 
-class KickFaceAudioProcessorEditor : public AudioProcessorEditor, public juce::TextEditor::Listener, public juce::Button::Listener, public juce::ComboBox::Listener, public GlobalProcessorArray::Listener
+class KickFaceAudioProcessorEditor : public AudioProcessorEditor, public juce::TextEditor::Listener, public juce::Button::Listener, 
+	public juce::ComboBox::Listener, public GlobalProcessorArray::Listener
 {
 public:
 	KickFaceAudioProcessorEditor(KickFaceAudioProcessor&);

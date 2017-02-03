@@ -22,11 +22,18 @@
             numOutputs="0" isShell="0"/>
     <STATE>0.</STATE>
   </FILTER>
-  <FILTER uid="22" x="0.14499999999999999001" y="0.64534883720930236173">
+  <FILTER uid="23" x="0.15374999999999999778" y="0.63953488372093025838">
     <PLUGIN name="KickFace" format="VST" category="Effect" manufacturer="nullstar"
-            version="V1.0.0" file="C:\Dan\Git\KickFace\Builds\VisualStudio2015\Release\KickFace.dll"
-            uid="4b6b6663" isInstrument="0" fileTime="159df7b6e84" infoUpdateTime="159df824379"
+            version="V1.0.0" file="C:\Dan\Git\KickFace\Builds\VisualStudio2015\Debug\KickFace.dll"
+            uid="4b6b6663" isInstrument="0" fileTime="15a0416e9e0" infoUpdateTime="15a041728a1"
             numInputs="2" numOutputs="2" isShell="0"/>
-    <STATE>356.CMlaKA....fQBMDZ....ArzZlMF....Y....A...............................................................................................................................................................................Da0PxDxt....7rTZislQgMVYSQWXzUFHGklck4lSg0VY8HRQj0VctQlH9vyRoM1ZFE1XkYUXrUWYTIWYk4COPEjTA0DHoQVOhPVYrEVdh.hcgwVck0iHvHxK9vCTAIUPMARZj0iHo4lckIGcPgVXyUlHfXWXrUWY8HBLh7hO7.UPRETSfjFY8HBaoMGck4VSuQVYh.hcgwVck0iHvHxK9vyKKk1XqYTXiUlUgwVckQkbkUlO77xRoM1ZFE1XkMEcgQWY9..</STATE>
+    <STATE>357.CMlaKA....fQBMDZ....ArzZlMF....Y....A...............................................................................................................................................................................Ea0PxDBu....7rTZislQgMVYSQWXzUFHGklck4lSg0VY8HhSkYWZrwVYh3COKk1XqYTXiUlUgwVckQkbkUlO7.UPRETSfjFY8HBYkwVX4IBH1EFa0UVOh.iHu3COPEjTA0DHoQVOhjla1UlbzAEZgMWYh.hcgwVck0iHvHxK9vCTAIUPMARZj0iHrk1bzUlaM8FYkIBH1EFa0UVOh.iHu3COurTZislQgMVYVEFa0UFUxUVY9vyKKk1XqYTXiU1TzEFck4C.</STATE>
+  </FILTER>
+  <FILTER uid="24" x="0.35249999999999998002" y="0.58914728682170547369">
+    <PLUGIN name="KickFace" format="VST" category="Effect" manufacturer="nullstar"
+            version="V1.0.0" file="C:\Dan\Git\KickFace\Builds\VisualStudio2015\Debug\KickFace.dll"
+            uid="4b6b6663" isInstrument="0" fileTime="15a0416e9e0" infoUpdateTime="15a041728a1"
+            numInputs="2" numOutputs="2" isShell="0"/>
+    <STATE>357.CMlaKA....fQBMDZ....ArzZlMF....Y....A...............................................................................................................................................................................Ea0PxDBu....7rTZislQgMVYSQWXzUFHGklck4lSg0VY8HRT0Ulazklah3COKk1XqYTXiUlUgwVckQkbkUlO7.UPRETSfjFY8HBYkwVX4IBH1EFa0UVOh.iHu3COPEjTA0DHoQVOhjla1UlbzAEZgMWYh.hcgwVck0iHvHxK9vCTAIUPMARZj0iHrk1bzUlaM8FYkIBH1EFa0UVOh.iHu3COurTZislQgMVYVEFa0UFUxUVY9vyKKk1XqYTXiU1TzEFck4C.</STATE>
   </FILTER>
 </FILTERGRAPH>
